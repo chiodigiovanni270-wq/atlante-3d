@@ -17,6 +17,9 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 - Ogni modello deve restare una pagina indipendente e funzionante anche da sola.
 - NON modificare la logica anatomica, le geometrie, i colori o i controlli dei modelli se non te lo chiedo:
   puoi solo aggiungere elementi comuni (header di navigazione, link alla home, meta tag, favicon).
+- Tema: tutto il sito usa sempre il tema scuro, indipendentemente dall'impostazione del sistema.
+  Nei modelli lo imposta `assets/nav.js` (`data-theme="dark"` su `<html>`), senza modificare i file dei modelli;
+  homepage e nuove pagine usano la stessa palette scura dei modelli.
 - Responsive: deve funzionare bene su smartphone (touch) e desktop.
 - Nessun cookie, nessun tracciamento di terze parti.
 
