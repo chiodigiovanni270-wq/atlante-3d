@@ -22,6 +22,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
   e ribadito da `assets/nav.js`; homepage e nuove pagine usano la stessa palette scura dei modelli.
 - Responsive: deve funzionare bene su smartphone (touch) e desktop.
 - Nessun cookie, nessun tracciamento di terze parti.
+- `.vercelignore` esclude dal deploy `strumenti/`, `CLAUDE.md` e `README.md`: restano nel repository ma non sul sito.
 
 ## Requisiti di contenuto
 - Ogni pagina riporta un disclaimer breve: "Materiale didattico. Non destinato a uso clinico o diagnostico."
@@ -32,7 +33,8 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 2. Nel tag `<html>` aggiungi l'attributo `data-theme="dark"`; nel `<head>` aggiungi
    `<meta name="description" content="…">` e `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`;
    subito dopo `<body>` aggiungi `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
-3. Crea l'anteprima `assets/anteprime/<nome>-3d.jpg` (circa 800×500, meno di 80 KB).
+3. Crea l'anteprima con `node strumenti/anteprima.mjs <nome>-3d` (server locale attivo sulla porta 8000):
+   salva `assets/anteprime/<nome>-3d.jpg`, 800×500. Istruzioni e opzioni in testa allo script.
 4. In `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna link, immagine, alt, titolo,
    descrizione e dimensione del file.
 5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
