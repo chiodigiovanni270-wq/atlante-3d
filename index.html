@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlante anatomico 3D</title>
+<meta name="description" content="Modelli anatomici 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia. Materiale didattico.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Spectral:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* stessa palette scura dei modelli (tema scuro fisso su tutto il sito) */
+:root{
+  --bg:#161c23; --bg-hi:#2a333d; --bg-lo:#0d1116; --panel:#1e262f; --ink:#e5eaef; --muted:#93a1ae;
+  --line:#324050; --accent:#72b4d0; --shadow:0 6px 24px rgba(0,0,0,.45);
+  --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--bg-lo)}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse 90% 60% at 50% 0%,var(--bg-hi) 0%,var(--bg) 55%,var(--bg-lo) 100%) no-repeat;
+  color:var(--ink);font:400 15px/1.5 var(--sans);-webkit-tap-highlight-color:transparent}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.wrap{max-width:1080px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top,0px) + 40px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 28px) max(16px,env(safe-area-inset-left,0px))}
+header h1{font:600 clamp(30px,6vw,44px)/1.1 var(--serif);margin:0 0 10px}
+header p{margin:0;max-width:60ch;color:var(--muted);font-size:16px}
+
+.grid{list-style:none;margin:32px 0 0;padding:0;display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
+.card{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card:has(.card-link:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.card img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;background:var(--bg);border-bottom:1px solid var(--line)}
+.card-body{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;flex:1}
+.card h2{font:600 21px/1.2 var(--serif);margin:0}
+.card-link{color:var(--ink);text-decoration:none}
+.card-link:focus-visible{outline:none}
+.card-link::after{content:"";position:absolute;inset:0}   /* tutta la card è cliccabile */
+.card p{margin:0}
+.card .desc{color:var(--ink);font-size:14.5px;line-height:1.45}
+.card .meta{margin-top:auto;padding-top:6px;color:var(--muted);font-size:12.5px}
+.card .sub{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.card .sub a{display:inline-block;border:1px solid var(--accent);border-radius:999px;padding:5px 12px;font-weight:600;text-decoration:none}
+.card .sub a:hover{background:var(--accent);color:var(--panel)}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.5}
+footer p{margin:0 0 8px;max-width:80ch}
+footer strong{color:var(--ink)}
+footer .cite{font-size:12px}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Atlante anatomico 3D</h1>
+    <p>Modelli 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia.
+       Ruota e ingrandisci il modello, tocca una struttura per leggerne la descrizione.</p>
+  </header>
+
+  <main>
+    <ul class="grid">
+      <!-- CARD MODELLO: per aggiungere un modello duplica questo blocco e cambia link, immagine, alt, titolo, descrizione e dimensione -->
+      <li class="card">
+        <img src="assets/anteprime/ginocchio-3d.jpg" width="800" height="500" loading="lazy"
+             alt="Anteprima del modello 3D del ginocchio destro in vista anteriore">
+        <div class="card-body">
+          <h2><a class="card-link" href="modelli/ginocchio-3d.html">Ginocchio destro</a></h2>
+          <p class="desc">Ossa, cartilagini, menischi, legamenti, tendini, muscoli, vasi e nervi, con viste standard ed etichette delle strutture.</p>
+          <p class="meta">Modello 3D · circa 4 MB</p>
+        </div>
+      </li>
+      <!-- /CARD MODELLO -->
+
+      <!-- CARD MODELLO (con link alle sezioni: il blocco .sub è facoltativo) -->
+      <li class="card">
+        <img src="assets/anteprime/polso-dito-3d.jpg" width="800" height="500" loading="lazy"
+             alt="Anteprima del modello 3D del polso destro in vista volare">
+        <div class="card-body">
+          <h2><a class="card-link" href="modelli/polso-dito-3d.html">Polso destro e dito</a></h2>
+          <p class="desc">Carpo, legamenti e TFCC, retinacoli, compartimenti estensori, tunnel carpale e canale di Guyon. Sezione separata per il dito medio.</p>
+          <p class="sub">Apri: <a href="modelli/polso-dito-3d.html">Polso</a> <a href="modelli/polso-dito-3d.html#dito">Dito</a></p>
+          <p class="meta">Modello 3D · circa 5 MB</p>
+        </div>
+      </li>
+      <!-- /CARD MODELLO -->
+    </ul>
+  </main>
+
+  <footer>
+    <p><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p>
+    <p>I modelli sono derivati da <strong>BodyParts3D</strong>, © The Database Center for Life Science (DBCLS),
+       licenza <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>.
+       Le geometrie originali sono state modificate e integrate con strutture modellate appositamente.</p>
+    <p class="cite">Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p>
+  </footer>
+</div>
+</body>
+</html>
