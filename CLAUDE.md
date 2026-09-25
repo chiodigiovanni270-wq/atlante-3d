@@ -1,15 +1,13 @@
 # Atlante anatomico 3D — contesto progetto
 
 ## Obiettivo
-Sito web statico che raccoglie modelli anatomici 3D interattivi e atlanti RM simulati,
+Sito web statico che raccoglie modelli anatomici 3D interattivi,
 a scopo didattico (anatomia muscolo-scheletrica per radiologia). Lingua dell'interfaccia: italiano.
 
 ## Materiale di partenza
 La cartella `modelli/` contiene pagine HTML autocontenute, nate come artifact di Claude:
 - `ginocchio-3d.html` — ginocchio 3D interattivo (three.js r128 da CDN)
 - `polso-dito-3d.html` — polso destro + dito in sezione separata (three.js r128 da CDN)
-- `ginocchio-rm-t1.html` — atlante RM T1 simulato del ginocchio
-- `polso-dito-rm-t1.html` — atlante RM T1 simulato di polso e dito
 
 Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi (2–8 MB), è normale.
 
@@ -24,7 +22,17 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 
 ## Requisiti di contenuto
 - Ogni pagina riporta un disclaimer breve: "Materiale didattico. Non destinato a uso clinico o diagnostico."
-- Gli atlanti RM vanno etichettati chiaramente come "simulati" (non immagini reali di pazienti).
+- Al momento i modelli sono due, ma ne verranno aggiunti altri nel tempo: la struttura del sito deve permettere di aggiungere un nuovo modello in modo semplice e ripetibile, senza riorganizzare tutto.
+
+## Aggiungere un modello
+1. Copia il file in `modelli/<nome>-3d.html` (nome minuscolo, parole separate da trattini).
+2. Nel `<head>` aggiungi `<meta name="description" content="…">` e
+   `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`; subito dopo `<body>` aggiungi
+   `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
+3. Crea l'anteprima `assets/anteprime/<nome>-3d.jpg` (circa 800×500, meno di 80 KB).
+4. In `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna link, immagine, alt, titolo,
+   descrizione e dimensione del file.
+5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
 
 ## Modo di lavorare
 - Prima di modifiche ampie, proponi un piano e attendi conferma.
