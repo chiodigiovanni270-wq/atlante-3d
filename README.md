@@ -71,5 +71,6 @@ Non serve configurazione: Vercel serve i file così come sono.
 I modelli sono derivati da **BodyParts3D**, © The Database Center for Life Science (DBCLS),
 licenza [CC BY-SA 2.1 JP](https://creativecommons.org/licenses/by-sa/2.1/jp/).
 Le geometrie originali sono state modificate e integrate con strutture modellate appositamente.
+I modelli modificati sono distribuiti con la stessa licenza CC BY-SA 2.1 JP.
 
 Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.
