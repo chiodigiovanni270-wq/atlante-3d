@@ -18,8 +18,8 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 - NON modificare la logica anatomica, le geometrie, i colori o i controlli dei modelli se non te lo chiedo:
   puoi solo aggiungere elementi comuni (header di navigazione, link alla home, meta tag, favicon).
 - Tema: tutto il sito usa sempre il tema scuro, indipendentemente dall'impostazione del sistema.
-  Nei modelli lo imposta `assets/nav.js` (`data-theme="dark"` su `<html>`), senza modificare i file dei modelli;
-  homepage e nuove pagine usano la stessa palette scura dei modelli.
+  Nei modelli è impostato con l'attributo `data-theme="dark"` sul tag `<html>` (unica modifica autorizzata al tag)
+  e ribadito da `assets/nav.js`; homepage e nuove pagine usano la stessa palette scura dei modelli.
 - Responsive: deve funzionare bene su smartphone (touch) e desktop.
 - Nessun cookie, nessun tracciamento di terze parti.
 
@@ -29,9 +29,9 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 
 ## Aggiungere un modello
 1. Copia il file in `modelli/<nome>-3d.html` (nome minuscolo, parole separate da trattini).
-2. Nel `<head>` aggiungi `<meta name="description" content="…">` e
-   `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`; subito dopo `<body>` aggiungi
-   `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
+2. Nel tag `<html>` aggiungi l'attributo `data-theme="dark"`; nel `<head>` aggiungi
+   `<meta name="description" content="…">` e `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`;
+   subito dopo `<body>` aggiungi `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
 3. Crea l'anteprima `assets/anteprime/<nome>-3d.jpg` (circa 800×500, meno di 80 KB).
 4. In `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna link, immagine, alt, titolo,
    descrizione e dimensione del file.
