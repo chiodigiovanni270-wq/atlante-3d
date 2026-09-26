@@ -14,7 +14,8 @@ assets/nav.js              header comune dei modelli: link alla home, disclaimer
 assets/favicon.svg
 assets/anteprime/          immagini 800×500 delle card
 strumenti/anteprima.mjs    genera le anteprime (non pubblicato sul sito)
-.vercelignore              esclude dal deploy strumenti/, CLAUDE.md e README.md
+GUIDA_MODELLI.md           guida tecnica ai modelli, non pubblicata sul sito
+.vercelignore              esclude dal deploy strumenti/, CLAUDE.md, README.md e GUIDA_MODELLI.md
 ```
 
 Nessun framework, nessun build step, nessun cookie o tracciamento.

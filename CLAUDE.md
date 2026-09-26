@@ -23,7 +23,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
   e ribadito da `assets/nav.js`; homepage e nuove pagine usano la stessa palette scura dei modelli.
 - Responsive: deve funzionare bene su smartphone (touch) e desktop.
 - Nessun cookie, nessun tracciamento di terze parti.
-- `.vercelignore` esclude dal deploy `strumenti/`, `CLAUDE.md` e `README.md`: restano nel repository ma non sul sito.
+- `.vercelignore` esclude dal deploy `strumenti/`, `CLAUDE.md`, `README.md` e `GUIDA_MODELLI.md`: restano nel repository ma non sul sito.
 
 ## Requisiti di contenuto
 - Ogni pagina riporta un disclaimer breve: "Materiale didattico. Non destinato a uso clinico o diagnostico."
