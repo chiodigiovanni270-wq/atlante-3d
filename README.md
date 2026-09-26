@@ -8,7 +8,7 @@ Sito statico con modelli anatomici 3D interattivi, a scopo didattico
 ## Struttura
 
 ```
-index.html                 homepage: una card per ogni modello (card su smartphone, tavole da 720 px)
+index.html                 homepage: presentazione, una card per ogni modello, "Come si usa", crediti
 modelli/<nome>-3d.html     un file autocontenuto per modello (three.js r128 da CDN, dati in base64)
 assets/nav.js              header comune dei modelli: link alla home, disclaimer, pannello "i" con i crediti
 assets/favicon.svg
@@ -32,7 +32,7 @@ ed è necessario per lo script delle anteprime.
 
 Cosa controllare dopo una modifica:
 - homepage: card, immagini, link (anche "Polso" / "Dito"), numeri "Tav." e conteggio dei modelli;
-- in ogni modello: header in alto, "‹ Atlante" torna alla home, pannello "i" si apre e si chiude
+- in ogni modello: header in alto, "‹ Atlante 3D" torna alla home, pannello "i" si apre e si chiude
   (su smartphone dal basso, chiudibile toccando lo sfondo; da 640 px come riquadro sotto la "i"),
   toccando una struttura si apre la scheda giusta;
 - vista smartphone (strumenti per sviluppatori del browser, 360 e 375 px) e desktop.

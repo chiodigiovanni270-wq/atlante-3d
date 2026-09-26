@@ -13,27 +13,33 @@
   var BAR = 'calc(48px + env(safe-area-inset-top,0px))';
   var SANS = 'var(--sans,"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif)';
   var SERIF = 'var(--serif,"Spectral",Georgia,serif)';
-  var WARN = '#ecc85a';   /* giallo dei nervi nei modelli: solo per l'etichetta "Avvertenza" */
+  var WARN = '#ecc85a';   /* giallo dei nervi nei modelli: solo per l'avvertenza */
 
   var css =
     '.an-bar{position:fixed;top:0;left:0;right:0;z-index:20;box-sizing:border-box;height:' + BAR + ';' +
-      'padding:env(safe-area-inset-top,0px) max(4px,env(safe-area-inset-right,0px)) 0 max(6px,env(safe-area-inset-left,0px));' +
-      'display:flex;align-items:center;gap:6px;background:var(--panel,#1e262f);border-bottom:1px solid var(--line,#324050);' +
+      'padding:env(safe-area-inset-top,0px) max(4px,env(safe-area-inset-right,0px)) 0 max(4px,env(safe-area-inset-left,0px));' +
+      'display:flex;align-items:center;gap:8px;background:rgba(13,17,22,.9);border-bottom:1px solid rgba(50,64,80,.7);' +
       'color:var(--ink,#e5eaef);font:500 13px/1.2 ' + SANS + '}' +
-    '.an-home{flex:none;display:inline-flex;align-items:center;gap:2px;min-height:44px;padding:0 8px 0 2px;border-radius:8px;' +
-      'color:var(--ink,#e5eaef);font:600 17px/1 ' + SERIF + ';text-decoration:none;white-space:nowrap}' +
-    '.an-home svg{flex:none;color:var(--accent,#72b4d0)}' +
-    '.an-home:hover{color:var(--accent,#72b4d0)}' +
-    '.an-disc{flex:1;min-width:0;margin:0;text-align:right;color:var(--muted,#93a1ae);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.an-long{font-size:12.5px;font-weight:400}' +
-    '.an-short{display:none;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}' +
+    '.an-home{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 10px 0 2px;border-radius:10px;' +
+      'color:var(--ink,#e5eaef);font:600 15px/1 ' + SANS + ';letter-spacing:-.01em;text-decoration:none;white-space:nowrap}' +
+    '.an-home svg{flex:none;margin-right:-4px;color:var(--muted,#93a1ae);transition:transform .15s,color .15s}' +
+    '.an-home img{display:block;flex:none}' +
+    '.an-home b{font-weight:600;color:var(--accent,#72b4d0)}' +
+    '.an-home:hover svg{color:var(--accent,#72b4d0);transform:translateX(-2px)}' +
+    '.an-disc{flex:1;min-width:0;margin:0;display:flex;justify-content:flex-end}' +
+    '.an-pill{min-width:0;display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border:1px solid var(--line,#324050);' +
+      'border-radius:999px;background:rgba(30,38,47,.6);color:var(--muted,#93a1ae);font-size:12px;font-weight:500}' +
+    '.an-pill i{flex:none;width:6px;height:6px;border-radius:50%;background:' + WARN + '}' +
+    '.an-pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.an-short{display:none}' +
     '@media (max-width:640px){.an-long{display:none}.an-short{display:inline}}' +
+    '@media (max-width:340px){.an-disc{display:none}.an-bar{justify-content:space-between}}' +
     '.an-info{flex:none;width:44px;height:44px;border:0;background:transparent;padding:0;cursor:pointer;' +
       'display:flex;align-items:center;justify-content:center}' +
-    '.an-info span{width:30px;height:30px;box-sizing:border-box;border-radius:50%;border:1px solid var(--line,#324050);' +
-      'display:flex;align-items:center;justify-content:center;color:var(--accent,#72b4d0);font:600 17px/1 ' + SERIF + '}' +
-    '.an-info:hover span{border-color:var(--accent,#72b4d0)}' +
-    '.an-info[aria-expanded="true"] span{background:var(--accent,#72b4d0);border-color:var(--accent,#72b4d0);color:var(--panel,#1e262f)}' +
+    '.an-info span{width:32px;height:32px;box-sizing:border-box;border-radius:50%;border:1px solid var(--line,#324050);background:rgba(30,38,47,.6);' +
+      'display:flex;align-items:center;justify-content:center;color:var(--accent,#72b4d0);font:600 15px/1 ' + SANS + ';transition:background-color .15s,border-color .15s}' +
+    '.an-info:hover span{border-color:rgba(114,180,208,.5)}' +
+    '.an-info[aria-expanded="true"] span{background:var(--accent,#72b4d0);border-color:var(--accent,#72b4d0);color:var(--bg-lo,#0d1116)}' +
     '.an-home:focus-visible,.an-info:focus-visible,.an-panel a:focus-visible,.an-close:focus-visible{outline:2px solid var(--accent,#72b4d0);outline-offset:2px}' +
     '.an-panel:focus{outline:none}' +
     '.an-scrim{position:fixed;z-index:19;top:' + BAR + ';left:0;right:0;bottom:0;background:rgba(13,17,22,.66)}' +
@@ -43,32 +49,34 @@
       'max-height:calc(100% - ' + BAR + ' - 16px);overflow-y:auto;overscroll-behavior:contain;' +
       'padding:10px max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(20px,env(safe-area-inset-left,0px));' +
       'display:flex;flex-direction:column;gap:16px;background:var(--panel,#1e262f);border-top:1px solid var(--line,#324050);' +
-      'border-radius:18px 18px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.5);color:var(--ink,#e5eaef);font:400 13.5px/1.5 ' + SANS + '}' +
-    '.an-grip{align-self:center;flex:none;width:36px;height:4px;border-radius:2px;background:var(--line,#324050)}' +
+      'border-radius:22px 22px 0 0;box-shadow:0 -16px 50px rgba(0,0,0,.55);color:var(--ink,#e5eaef);font:400 13.5px/1.55 ' + SANS + '}' +
+    '.an-grip{align-self:center;flex:none;width:40px;height:4px;border-radius:2px;background:var(--line,#324050)}' +
     '.an-head{display:flex;align-items:center;justify-content:space-between;margin-top:-6px}' +
-    '.an-head h2{margin:0;font:600 23px/1.2 ' + SERIF + '}' +
-    '.an-close{flex:none;width:44px;height:44px;margin-right:-10px;border:0;border-radius:8px;background:transparent;color:var(--muted,#93a1ae);' +
+    '.an-head h2{margin:0;font:600 20px/1.2 ' + SANS + ';letter-spacing:-.015em}' +
+    '.an-close{flex:none;width:44px;height:44px;margin-right:-10px;border:0;border-radius:10px;background:transparent;color:var(--muted,#93a1ae);' +
       'display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}' +
-    '.an-close:hover{color:var(--ink,#e5eaef)}' +
+    '.an-close:hover{color:var(--ink,#e5eaef);background:rgba(255,255,255,.05)}' +
     '.an-sec{display:flex;flex-direction:column;gap:6px}' +
     '.an-sec+.an-sec{padding-top:14px;border-top:1px solid var(--line,#324050)}' +
     '.an-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted,#93a1ae)}' +
+    '.an-warn{padding:12px 14px;border:1px solid rgba(236,200,90,.3);border-radius:14px;background:rgba(236,200,90,.07)}' +
     '.an-warn .an-label{color:' + WARN + '}' +
+    '.an-warn+.an-sec{padding-top:2px;border-top:0}' +
     '.an-panel p{margin:0}' +
-    '.an-warn p{font:500 18px/1.35 ' + SERIF + '}' +
+    '.an-warn p{font-size:15.5px;line-height:1.4}' +
     '.an-panel strong{font-weight:600}' +
     '.an-cite{font:italic 500 14px/1.45 ' + SERIF + ';color:var(--muted,#93a1ae)}' +
     '.an-panel a{color:var(--accent,#72b4d0)}' +
-    '.an-back{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-top:2px;border:1px solid var(--accent,#72b4d0);' +
-      'border-radius:4px;font-weight:600;font-size:15px;text-decoration:none}' +
-    '.an-back:hover{background:var(--accent,#72b4d0);color:var(--panel,#1e262f)}' +
+    '.an-back{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-top:2px;border:1px solid rgba(114,180,208,.38);' +
+      'border-radius:999px;background:rgba(114,180,208,.12);font-weight:600;font-size:15px;text-decoration:none;transition:background-color .15s,color .15s}' +
+    '.an-back:hover{background:var(--accent,#72b4d0);color:var(--bg-lo,#0d1116)}' +
     /* da 640 px: riquadro sotto la "i", senza sfondo attenuato */
     '@media (min-width:641px){' +
       '.an-scrim{display:none}' +
       '.an-panel{left:auto;bottom:auto;top:calc(' + BAR + ' + 8px);right:max(10px,env(safe-area-inset-right,0px));width:380px;' +
-        'max-height:calc(100% - ' + BAR + ' - 24px);padding:14px 20px 20px;gap:14px;border:1px solid var(--line,#324050);border-radius:14px;' +
-        'box-shadow:0 16px 48px rgba(0,0,0,.55)}' +
-      '.an-grip{display:none}.an-head{margin-top:0}.an-head h2{font-size:21px}' +
+        'max-height:calc(100% - ' + BAR + ' - 24px);padding:16px 20px 20px;gap:14px;border:1px solid var(--line,#324050);border-radius:18px;' +
+        'box-shadow:0 24px 60px -12px rgba(0,0,0,.7)}' +
+      '.an-grip{display:none}.an-head{margin-top:0}' +
     '}' +
     /* unica regola sull'interfaccia del modello: titolo e viste scendono sotto l'header */
     '.top{top:' + BAR + ';padding-top:12px}';
@@ -83,9 +91,11 @@
   var bar = document.createElement('header');
   bar.className = 'an-bar';
   bar.innerHTML =
-    '<a class="an-home" href="' + HOME + '">' + CHEVRON + 'Atlante</a>' +
-    '<p class="an-disc"><span class="an-long">Materiale didattico. Non destinato a uso clinico o diagnostico.</span>' +
-      '<span class="an-short">Solo uso didattico</span></p>' +
+    '<a class="an-home" href="' + HOME + '">' + CHEVRON +
+      '<img src="../assets/favicon.svg" width="24" height="24" alt="">Atlante <b>3D</b></a>' +
+    '<p class="an-disc"><span class="an-pill"><i aria-hidden="true"></i>' +
+      '<span class="an-long">Materiale didattico · non destinato a uso clinico o diagnostico</span>' +
+      '<span class="an-short">Uso didattico</span></span></p>' +
     '<button type="button" class="an-info" aria-expanded="false" aria-controls="an-panel" aria-label="Informazioni e crediti">' +
       '<span aria-hidden="true">i</span></button>';
 
@@ -106,7 +116,7 @@
       '<button type="button" class="an-close" aria-label="Chiudi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" ' +
       'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button></div>' +
     '<section class="an-sec an-warn"><span class="an-label">Avvertenza</span>' +
-      '<p>Materiale didattico. Non destinato a uso clinico o diagnostico.</p></section>' +
+      '<p><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p></section>' +
     '<section class="an-sec"><span class="an-label">Fonte e licenza</span>' +
       '<p>I modelli sono derivati da <strong>BodyParts3D</strong>, © The Database Center for Life Science (DBCLS), ' +
       'licenza <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>. ' +
