@@ -127,6 +127,8 @@
       'I modelli modificati sono distribuiti con la stessa licenza CC BY-SA 2.1 JP.</p></section>' +
     '<section class="an-sec"><span class="an-label">Citazione</span>' +
       '<p class="an-cite">Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p></section>' +
+    '<section class="an-sec"><span class="an-label">Autore</span>' +
+      '<p>Ideato e realizzato da <strong>Dott. Giovanni Chiodi</strong>, medico radiologo.</p></section>' +
     '<a class="an-back" href="' + HOME + '">' + CHEVRON + 'Torna all’indice</a>';
 
   var anchor = document.currentScript;
