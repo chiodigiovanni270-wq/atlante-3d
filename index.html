@@ -8,98 +8,212 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Spectral:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Spectral:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <style>
-/* stessa palette scura dei modelli (tema scuro fisso su tutto il sito) */
+/* stessa palette scura dei modelli (tema scuro fisso su tutto il sito).
+   Smartphone: card compatte; da 720 px: impaginazione a tavole d'atlante. */
 :root{
   --bg:#161c23; --bg-hi:#2a333d; --bg-lo:#0d1116; --panel:#1e262f; --ink:#e5eaef; --muted:#93a1ae;
   --line:#324050; --accent:#72b4d0; --shadow:0 6px 24px rgba(0,0,0,.45);
+  --warn:#ecc85a;   /* giallo dei nervi nei modelli: solo per l'avvertenza */
   --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{background:var(--bg-lo)}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse 90% 60% at 50% 0%,var(--bg-hi) 0%,var(--bg) 55%,var(--bg-lo) 100%) no-repeat;
-  color:var(--ink);font:400 15px/1.5 var(--sans);-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:var(--bg-lo);color:var(--ink);font:400 15px/1.5 var(--sans);-webkit-tap-highlight-color:transparent}
 a{color:var(--accent)}
 a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 
-.wrap{max-width:1080px;margin:0 auto;
-  padding:calc(env(safe-area-inset-top,0px) + 40px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 28px) max(16px,env(safe-area-inset-left,0px))}
-header h1{font:600 clamp(30px,6vw,44px)/1.1 var(--serif);margin:0 0 10px}
-header p{margin:0;max-width:60ch;color:var(--muted);font-size:16px}
+.page{background:radial-gradient(ellipse 120% 40% at 50% 0%,var(--bg-hi) 0%,var(--bg) 60%,var(--bg-lo) 100%) no-repeat}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 24px);padding-bottom:28px}
 
-.grid{list-style:none;margin:32px 0 0;padding:0;display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
-.card{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
-  box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
-.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+/* intestazione */
+header{display:flex;flex-direction:column;gap:12px;padding:0 4px}
+.head-main,.head-side{display:flex;flex-direction:column;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.brand img{display:block;flex:none}
+h1{margin:6px 0 0;font:600 clamp(34px,8.5vw,64px)/1.04 var(--serif);letter-spacing:-.01em}
+.lede{margin:0;max-width:60ch;color:var(--muted);font-size:15.5px}
+.how{display:none;list-style:none;margin:0;padding:0}
+
+/* indice */
+.index{position:relative;margin-top:26px}
+.index-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid var(--line)}
+.index-head h2{margin:0;font:italic 500 21px/1.3 var(--serif)}
+.grid{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:20px;counter-reset:tav}
+/* numero di modelli, calcolato dal CSS: si aggiorna da solo aggiungendo card */
+.grid::after{content:counter(tav) " modelli";position:absolute;top:6px;right:4px;font-size:12.5px;color:var(--muted)}
+.grid:has(> .card:only-child)::after{content:"1 modello"}
+
+/* card — smartphone */
+.card{position:relative;display:flex;flex-direction:column;counter-increment:tav;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  overflow:hidden;box-shadow:var(--shadow);transition:border-color .15s}
+.card:hover{border-color:var(--accent)}
 .card:has(.card-link:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.card figure{margin:0}
 .card img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;background:var(--bg);border-bottom:1px solid var(--line)}
-.card-body{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;flex:1}
-.card h2{font:600 21px/1.2 var(--serif);margin:0}
+.card figcaption{display:none}
+.card-kicker{order:1;display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:14px 16px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.card-num{color:var(--accent)}
+.card-num::before{content:"Tav. " counter(tav,upper-roman)}
+.card-num::after{content:" ·";color:var(--muted)}
+.card-body{order:2;flex:1;display:flex;flex-direction:column;gap:10px;padding:6px 16px 16px}
+.card h3{margin:0;font:600 22px/1.15 var(--serif)}
 .card-link{color:var(--ink);text-decoration:none}
 .card-link:focus-visible{outline:none}
 .card-link::after{content:"";position:absolute;inset:0}   /* tutta la card è cliccabile */
-.card p{margin:0}
-.card .desc{color:var(--ink);font-size:14.5px;line-height:1.45}
-.card .meta{margin-top:auto;padding-top:6px;color:var(--muted);font-size:12.5px}
-.card .sub{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.card .sub a{display:inline-block;border:1px solid var(--accent);border-radius:999px;padding:5px 12px;font-weight:600;text-decoration:none}
-.card .sub a:hover{background:var(--accent);color:var(--panel)}
+.card .desc{margin:0;font-size:14.5px;line-height:1.45}
+.go{margin:auto 0 0;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:12px;
+  background:var(--accent);color:var(--bg-lo);font-weight:600;font-size:15px}
+.go svg{display:none}
+.card:has(.sub) .go{display:none}          /* con i link alle sezioni il pulsante generico non serve */
+.sub{position:relative;z-index:1;margin:auto 0 0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.sub-label{display:none}
+.sub a{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:12px;
+  background:var(--bg-hi);color:var(--ink);font-weight:600;font-size:15px;text-decoration:none}
+.sub a:first-of-type{background:var(--accent);border-color:var(--accent);color:var(--bg-lo)}
 
-footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.5}
-footer p{margin:0 0 8px;max-width:80ch}
-footer strong{color:var(--ink)}
-footer .cite{font-size:12px}
-@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+/* piè di pagina — smartphone */
+footer{display:flex;flex-direction:column;gap:14px;padding-top:4px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 36px)}
+footer p{margin:0;max-width:80ch}
+.f-label{display:none}
+.f-warn{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.f-warn svg{flex:none;margin-top:1px}
+.f-warn p{font-size:14.5px;line-height:1.45}
+.f-warn strong{font-weight:600}
+.f-lic{padding:0 4px;font-size:13px;line-height:1.55;color:var(--muted)}
+.f-lic strong{color:var(--ink);font-weight:600}
+.f-cite{padding:0 4px;font-size:12px;color:var(--muted)}
+
+/* da 720 px: tavole d'atlante */
+@media (min-width:720px){
+  .page{background:var(--bg)}
+  .wrap{padding-left:max(clamp(24px,6vw,80px),env(safe-area-inset-left,0px));padding-right:max(clamp(24px,6vw,80px),env(safe-area-inset-right,0px))}
+  .page .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 56px);padding-bottom:72px}
+  header{padding:0 0 36px;border-bottom:1px solid var(--line);gap:24px}
+  .brand{font-size:12px}
+  .lede{font-size:17px}
+  .lede-how{display:none}
+  .how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .how li{display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.35;color:var(--muted)}
+  .how li span{font:italic 500 18px/1.2 var(--serif);color:var(--accent)}
+  .index{margin-top:0}
+  .index-head{padding:28px 0 10px}
+  .index-head h2{font-size:24px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px 48px;margin-top:28px}
+  .grid::after{top:36px;right:0;font-size:13px}
+
+  .card{gap:14px;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
+  .card:hover img{border-color:var(--accent)}
+  .card:hover .card-link{color:var(--accent)}
+  .card-kicker{order:0;justify-content:space-between;align-items:baseline;padding:0;font-size:11.5px}
+  .card-num{font:italic 500 18px/1 var(--serif);letter-spacing:.02em;text-transform:none}
+  .card-num::after{content:none}
+  .card figure{order:1;display:flex;flex-direction:column;gap:8px}
+  .card img{border:1px solid var(--line);border-radius:4px;transition:border-color .15s}
+  .card figcaption{display:block;font:italic 500 14px/1.4 var(--serif);color:var(--muted)}
+  .card-body{gap:14px;padding:0}
+  .card h3{margin-top:4px;font-size:clamp(26px,2.6vw,34px);line-height:1.1;transition:color .15s}
+  .card-link{transition:color .15s}
+  .card .desc{font-size:15.5px;line-height:1.55;max-width:60ch}
+  .go{justify-content:flex-end;padding-top:4px;border-top:1px solid var(--line);border-radius:0;background:none;color:var(--accent)}
+  .go svg{display:block}
+  .sub{display:flex;align-items:center;justify-content:flex-end;gap:18px;padding-top:4px;border-top:1px solid var(--line)}
+  .sub-label{display:inline;margin-right:auto;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+  .sub a,.sub a:first-of-type{min-height:44px;padding:0;border:0;border-radius:4px;background:none;color:var(--accent);font:600 17px/1 var(--serif)}
+  .sub a:hover{text-decoration:underline;text-underline-offset:4px}
+
+  footer{display:grid;grid-template-columns:4fr 5fr 3fr;gap:24px 40px;padding-top:36px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 44px)}
+  .f-label{display:block;margin-bottom:8px;font:600 11px/1.3 var(--sans);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .f-warn{display:block;padding:0;border:0;border-radius:0;background:none}
+  .f-warn svg{display:none}
+  .f-warn .f-label{color:var(--warn)}
+  .f-warn p{font:500 20px/1.35 var(--serif)}
+  .f-lic,.f-cite{padding:0}
+  .f-lic{line-height:1.6}
+  .f-cite{font:italic 500 14px/1.5 var(--serif)}
+}
+@media (min-width:960px){
+  header{display:grid;grid-template-columns:7fr 5fr;column-gap:24px;align-items:end}
+  h1{font-size:min(64px,5vw)}   /* "Atlante anatomico 3D" su una riga nella colonna larga */
+  .head-side{gap:18px}
+}
+@media (prefers-reduced-motion:reduce){.card,.card img,.card h3,.card-link{transition:none}}
 </style>
 </head>
 <body>
+<div class="page">
 <div class="wrap">
   <header>
-    <h1>Atlante anatomico 3D</h1>
-    <p>Modelli 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia.
-       Ruota e ingrandisci il modello, tocca una struttura per leggerne la descrizione.</p>
+    <div class="head-main">
+      <p class="brand"><img src="assets/favicon.svg" width="26" height="26" alt="">Muscolo-scheletrico · Radiologia</p>
+      <h1>Atlante anatomico 3D</h1>
+    </div>
+    <div class="head-side">
+      <p class="lede">Modelli 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia.<span class="lede-how">
+         Ruota e ingrandisci il modello, tocca una struttura per leggerne la descrizione.</span></p>
+      <ol class="how">
+        <li><span aria-hidden="true">i.</span>Trascina per ruotare il modello</li>
+        <li><span aria-hidden="true">ii.</span>Rotella o due dita per ingrandire</li>
+        <li><span aria-hidden="true">iii.</span>Seleziona una struttura per la scheda</li>
+      </ol>
+    </div>
   </header>
 
-  <main>
+  <main class="index">
+    <div class="index-head"><h2>Indice delle tavole</h2></div>
     <ul class="grid">
-      <!-- CARD MODELLO: per aggiungere un modello duplica questo blocco e cambia link, immagine, alt, titolo, descrizione e dimensione -->
+      <!-- CARD MODELLO: per aggiungere un modello duplica questo blocco e cambia distretto, immagine, alt, didascalia, link, titolo e descrizione.
+           Il numero "Tav." e il conteggio dei modelli sono automatici. -->
       <li class="card">
-        <img src="assets/anteprime/ginocchio-3d.jpg" width="800" height="500" loading="lazy"
-             alt="Anteprima del modello 3D del ginocchio destro in vista anteriore">
+        <p class="card-kicker"><span class="card-num"></span><span>Arto inferiore</span></p>
+        <figure>
+          <img src="assets/anteprime/ginocchio-3d.jpg" width="800" height="500" loading="lazy"
+               alt="Anteprima del modello 3D del ginocchio destro in vista anteriore">
+          <figcaption>Vista anteriore, lato destro</figcaption>
+        </figure>
         <div class="card-body">
-          <h2><a class="card-link" href="modelli/ginocchio-3d.html">Ginocchio destro</a></h2>
+          <h3><a class="card-link" href="modelli/ginocchio-3d.html">Ginocchio destro</a></h3>
           <p class="desc">Ossa, cartilagini, menischi, legamenti, tendini, borse, muscoli, vasi e nervi, con viste standard ed etichette delle strutture.</p>
-          <p class="meta">Modello 3D · circa 4 MB</p>
+          <p class="go" aria-hidden="true">Apri il modello <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></p>
         </div>
       </li>
       <!-- /CARD MODELLO -->
 
-      <!-- CARD MODELLO (con link alle sezioni: il blocco .sub è facoltativo) -->
+      <!-- CARD MODELLO (con link alle sezioni: il blocco .sub è facoltativo e sostituisce il pulsante "Apri il modello") -->
       <li class="card">
-        <img src="assets/anteprime/polso-dito-3d.jpg" width="800" height="500" loading="lazy"
-             alt="Anteprima del modello 3D del polso destro in vista volare">
+        <p class="card-kicker"><span class="card-num"></span><span>Arto superiore</span></p>
+        <figure>
+          <img src="assets/anteprime/polso-dito-3d.jpg" width="800" height="500" loading="lazy"
+               alt="Anteprima del modello 3D del polso destro in vista volare">
+          <figcaption>Vista volare, lato destro</figcaption>
+        </figure>
         <div class="card-body">
-          <h2><a class="card-link" href="modelli/polso-dito-3d.html">Polso destro e dito</a></h2>
+          <h3><a class="card-link" href="modelli/polso-dito-3d.html">Polso destro e dito</a></h3>
           <p class="desc">Carpo, legamenti e TFCC, retinacoli, compartimenti estensori, tunnel carpale e canale di Guyon. Sezione separata per il dito medio, con tendini flessori e pulegge.</p>
-          <p class="sub">Apri: <a href="modelli/polso-dito-3d.html">Polso</a> <a href="modelli/polso-dito-3d.html#dito">Dito</a></p>
-          <p class="meta">Modello 3D · circa 5 MB</p>
+          <p class="sub"><span class="sub-label">Sezioni</span> <a href="modelli/polso-dito-3d.html">Polso</a> <a href="modelli/polso-dito-3d.html#dito">Dito</a></p>
+          <p class="go" aria-hidden="true">Apri il modello <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></p>
         </div>
       </li>
       <!-- /CARD MODELLO -->
     </ul>
   </main>
-
-  <footer>
-    <p><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p>
-    <p>I modelli sono derivati da <strong>BodyParts3D</strong>, © The Database Center for Life Science (DBCLS),
-       licenza <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>.
-       Le geometrie originali sono state modificate e integrate con strutture modellate appositamente.
-       I modelli modificati sono distribuiti con la stessa licenza CC BY-SA 2.1 JP.</p>
-    <p class="cite">Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p>
-  </footer>
 </div>
+</div>
+
+<footer class="wrap">
+  <div class="f-warn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
+    <p><span class="f-label">Avvertenza</span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p>
+  </div>
+  <p class="f-lic"><span class="f-label">Fonte e licenza</span>I modelli sono derivati da <strong>BodyParts3D</strong>, © The Database Center for Life Science (DBCLS),
+     licenza <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>.
+     Le geometrie originali sono state modificate e integrate con strutture modellate appositamente.
+     I modelli modificati sono distribuiti con la stessa licenza CC BY-SA 2.1 JP.</p>
+  <p class="f-cite"><span class="f-label">Citazione</span>Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p>
+</footer>
 </body>
 </html>
