@@ -17,6 +17,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 - Ogni modello deve restare una pagina indipendente e funzionante anche da sola.
 - NON modificare la logica anatomica, le geometrie, i colori o i controlli dei modelli se non te lo chiedo:
   puoi solo aggiungere elementi comuni (header di navigazione, link alla home, meta tag, favicon).
+- Per qualsiasi modifica a un modello, leggere e rispettare `GUIDA_MODELLI.md`.
 - Tema: tutto il sito usa sempre il tema scuro, indipendentemente dall'impostazione del sistema.
   Nei modelli è impostato con l'attributo `data-theme="dark"` sul tag `<html>` (unica modifica autorizzata al tag)
   e ribadito da `assets/nav.js`; homepage e nuove pagine usano la stessa palette scura dei modelli.
