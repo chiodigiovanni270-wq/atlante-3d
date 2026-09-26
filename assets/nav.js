@@ -78,6 +78,8 @@
         'box-shadow:0 24px 60px -12px rgba(0,0,0,.7)}' +
       '.an-grip{display:none}.an-head{margin-top:0}' +
     '}' +
+    /* sfondo di riserva sotto il gradiente del modello: Safari iOS lo usa per la fascia sotto la barra del browser */
+    'body{background-color:var(--bg-lo,#0d1116)}' +
     /* unica regola sull'interfaccia del modello: titolo e viste scendono sotto l'header */
     '.top{top:' + BAR + ';padding-top:12px}';
 
