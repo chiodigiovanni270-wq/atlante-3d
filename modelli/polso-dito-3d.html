@@ -100,7 +100,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 /* ===== Smartphone: pannello richiudibile e card compatta ===== */
 .sheet-tab{display:none}
 @media (max-width:600px),(orientation:landscape) and (max-height:500px){
-  :root{--tabH:44px}
+  :root{--tabH:44px;--pillH:44px;--pillGap:12px}
   #sheet{left:0;right:0;bottom:0;width:auto;border:0;border-radius:0;
     padding:0 max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(12px,env(safe-area-inset-left,0px));
     transition:transform .25s ease,visibility 0s}
@@ -108,16 +108,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   .sheet-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
     position:absolute;bottom:100%;left:0;right:0;width:100%;visibility:visible;
     height:var(--tabH);padding:0 22px;border:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
-    background:var(--panel);box-shadow:0 -4px 14px rgba(0,0,0,.3);font-size:13.5px;font-weight:600;white-space:nowrap;
-    transition:height .25s ease,padding-bottom .25s ease}
-  #sheet.collapsed .sheet-tab{height:calc(var(--tabH) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);border-radius:0}
+    background:var(--panel);box-shadow:0 -4px 14px rgba(0,0,0,.3);font-size:13.5px;font-weight:600;white-space:nowrap}
+  /* chiuso: pulsante ovale fluttuante, staccato dal bordo inferiore: sotto e ai lati si vede lo sfondo */
+  #sheet.collapsed .sheet-tab{flex-direction:row;left:50%;right:auto;width:auto;transform:translateX(-50%);
+    bottom:calc(100% + var(--pillGap) + env(safe-area-inset-bottom,0px));height:var(--pillH);padding:0 18px;
+    border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow);
+    background:rgba(30,38,47,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  #sheet.collapsed .sheet-tab .grip{display:none}
   .sheet-tab .grip{width:32px;height:4px;border-radius:2px;background:var(--line)}
   .sheet-tab .car{display:inline-block;color:var(--accent);transition:transform .25s}
   #sheet:not(.collapsed) .sheet-tab .car{transform:rotate(180deg)}
   .sheet-body{max-height:60vh;max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;padding-top:10px}
   #sheet.open #list{max-height:none}  /* un solo scorrimento: quello del pannello */
   #card{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;margin:0 auto;
-    bottom:calc(var(--tabH) + env(safe-area-inset-bottom,0px) + 8px);padding:9px 12px 10px;
+    bottom:calc(var(--pillH) + var(--pillGap) + env(safe-area-inset-bottom,0px) + 10px);padding:9px 12px 10px;
     max-height:35vh;max-height:35dvh;display:flex;flex-direction:column}
   #card h2{font-size:17px}
   #card .cat{margin-bottom:4px}
