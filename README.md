@@ -8,7 +8,7 @@ Sito statico con modelli anatomici 3D interattivi, a scopo didattico
 ## Struttura
 
 ```
-index.html                 homepage: una card per ogni modello
+index.html                 homepage: una card per ogni modello (card su smartphone, tavole da 720 px)
 modelli/<nome>-3d.html     un file autocontenuto per modello (three.js r128 da CDN, dati in base64)
 assets/nav.js              header comune dei modelli: link alla home, disclaimer, pannello "i" con i crediti
 assets/favicon.svg
@@ -31,8 +31,9 @@ Le pagine si aprono anche con il doppio clic, ma il server locale riproduce il c
 ed è necessario per lo script delle anteprime.
 
 Cosa controllare dopo una modifica:
-- homepage: card, immagini, link (anche "Polso" / "Dito");
-- in ogni modello: header in alto, "‹ Atlante 3D" torna alla home, pannello "i" si apre e si chiude,
+- homepage: card, immagini, link (anche "Polso" / "Dito"), numeri "Tav." e conteggio dei modelli;
+- in ogni modello: header in alto, "‹ Atlante" torna alla home, pannello "i" si apre e si chiude
+  (su smartphone dal basso, chiudibile toccando lo sfondo; da 640 px come riquadro sotto la "i"),
   toccando una struttura si apre la scheda giusta;
 - vista smartphone (strumenti per sviluppatori del browser, 360 e 375 px) e desktop.
 
@@ -52,8 +53,10 @@ Cosa controllare dopo una modifica:
    ```
    Salva `assets/anteprime/<nome>-3d.jpg`. Per regolare l'inquadratura: `--zoom=1.2`, `--dy=-0.05`;
    per fare prove senza sovrascrivere: `--out=/tmp/prova.jpg`. Richiede Node 22+ e Google Chrome.
-4. **Card** — in `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna link, immagine,
-   testo alternativo, titolo, descrizione e peso del file. Il blocco `.sub` (link alle sezioni) è facoltativo.
+4. **Card** — in `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna distretto, immagine,
+   testo alternativo, didascalia della vista, link, titolo e descrizione. Il numero "Tav." e il conteggio
+   dei modelli sono automatici. Il blocco `.sub` (link alle sezioni) è facoltativo e sostituisce il pulsante
+   "Apri il modello".
 5. **Verifica e pubblica** — controlla in locale, poi:
    ```bash
    git add modelli/<nome>-3d.html assets/anteprime/<nome>-3d.jpg index.html
