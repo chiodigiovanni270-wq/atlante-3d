@@ -97,6 +97,34 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 }
 @media (prefers-reduced-motion:reduce){#list{transition:none}}
 @media (max-width:430px){.views{position:absolute;top:100%;right:14px;margin-top:6px}}
+/* ===== Smartphone: pannello richiudibile e card compatta ===== */
+.sheet-tab{display:none}
+@media (max-width:600px),(orientation:landscape) and (max-height:500px){
+  :root{--tabH:44px}
+  #sheet{left:0;right:0;bottom:0;width:auto;border:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+    padding:0 max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(12px,env(safe-area-inset-left,0px));
+    transition:transform .25s ease,visibility 0s}
+  #sheet.collapsed{transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  .sheet-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    position:absolute;bottom:100%;left:50%;transform:translateX(-50%);visibility:visible;
+    height:var(--tabH);padding:0 22px;border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;
+    background:var(--panel);box-shadow:0 -4px 14px rgba(0,0,0,.3);font-size:13.5px;font-weight:600;white-space:nowrap;
+    transition:height .25s ease,padding-bottom .25s ease}
+  #sheet.collapsed .sheet-tab{height:calc(var(--tabH) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+  .sheet-tab .grip{width:32px;height:4px;border-radius:2px;background:var(--line)}
+  .sheet-tab .car{display:inline-block;color:var(--accent);transition:transform .25s}
+  #sheet:not(.collapsed) .sheet-tab .car{transform:rotate(180deg)}
+  .sheet-body{max-height:60vh;max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;padding-top:10px}
+  #sheet.open #list{max-height:none}  /* un solo scorrimento: quello del pannello */
+  #card{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;margin:0 auto;
+    bottom:calc(var(--tabH) + env(safe-area-inset-bottom,0px) + 8px);padding:9px 12px 10px;
+    max-height:35vh;max-height:35dvh;display:flex;flex-direction:column}
+  #card h2{font-size:17px}
+  #card .cat{margin-bottom:4px}
+  #card h2,#card .cat,#card .btns{flex:none}
+  #card .info{flex:1 1 auto;min-height:0;max-height:none;margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){#sheet,.sheet-tab,.sheet-tab .car{transition:none}}
 </style>
 </head>
 <body>
@@ -130,7 +158,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </div>
 </div>
 
-<section id="sheet" aria-label="Strutture anatomiche">
+<section id="sheet" class="collapsed" aria-label="Strutture anatomiche">
+  <button class="sheet-tab" id="bSheet" aria-expanded="false" aria-controls="sheetBody">
+    <span class="grip" aria-hidden="true"></span>
+    <span>Strutture <span class="car" aria-hidden="true">▴</span></span>
+  </button>
+  <div class="sheet-body" id="sheetBody">
   <div class="regs" id="regs" role="group" aria-label="Regioni anatomiche"><span class="rl">Regioni</span></div>
   <div id="regNote" hidden></div>
   <div id="clipBar" hidden><label for="clipR">Taglio</label><input type="range" id="clipR" step="0.05"><span id="clipV"></span></div>
@@ -145,6 +178,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </div>
   <div id="list"></div>
   <p class="credit">Ossa, muscoli, tendini, retinacolo dei flessori, membrana interossea e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Cartilagini, legamenti, TFCC, retinacolo degli estensori, guaine, vasi e nervi sono ricostruiti sulle ossa reali.</p>
+  </div>
 </section>
 
 <script id="bpman2" type="application/json">{"min": [-2.9808, -6.4393, -2.2039], "max": [2.9556, 6.4053, 3.1619], "meshes": [{"n": "d_mc3", "nv": 3672, "ni": 21171, "p": 0, "t": 22032, "i16": 1, "i": 25704}, {"n": "d_p1", "nv": 3501, "ni": 20994, "p": 68048, "t": 89054, "i16": 1, "i": 92556}, {"n": "d_p2", "nv": 2751, "ni": 16494, "p": 134544, "t": 151050, "i16": 1, "i": 153804}, {"n": "d_p3", "nv": 1752, "ni": 10500, "p": 186792, "t": 197304, "i16": 1, "i": 199056}, {"n": "d_fds", "nv": 5314, "ni": 28254, "p": 220056, "d": 251940, "i16": 1, "i": 267884}, {"n": "d_fdp", "nv": 3794, "ni": 19662, "p": 324392, "d": 347156, "i16": 1, "i": 358540}, {"n": "d_edc", "nv": 3522, "ni": 17565, "p": 397864, "d": 418996, "i16": 1, "i": 429564}, {"n": "d_lumb", "nv": 2235, "ni": 11172, "p": 464696, "t": 478106, "d": 480341, "i16": 1, "i": 487048}, {"n": "d_iod", "nv": 4125, "ni": 18450, "p": 509392, "t": 534142, "d": 538267, "i16": 1, "i": 550644}, {"n": "guaina", "nv": 2501, "ni": 14994, "p": 587544, "i16": 1, "i": 602552}, {"n": "A1", "nv": 1003, "ni": 5994, "p": 632540, "d": 638558, "i16": 1, "i": 641568}, {"n": "A2", "nv": 1001, "ni": 5994, "p": 653556, "d": 659562, "i16": 1, "i": 662568}, {"n": "A3", "nv": 1001, "ni": 5994, "p": 674556, "d": 680562, "i16": 1, "i": 683568}, {"n": "A4", "nv": 1002, "ni": 6000, "p": 695556, "d": 701568, "i16": 1, "i": 704576}, {"n": "A5", "nv": 1001, "ni": 5994, "p": 716576, "d": 722582, "i16": 1, "i": 725588}, {"n": "C1", "nv": 752, "ni": 4500, "p": 737576, "d": 742088, "i16": 1, "i": 744344}, {"n": "C2", "nv": 751, "ni": 4494, "p": 753344, "d": 757850, "i16": 1, "i": 760104}, {"n": "C3", "nv": 752, "ni": 4500, "p": 769092, "d": 773604, "i16": 1, "i": 775860}, {"n": "vp_mcp", "nv": 968, "ni": 5940, "p": 784860, "d": 790668, "i16": 1, "i": 793572}, {"n": "vp_pip", "nv": 998, "ni": 6000, "p": 805452, "d": 811440, "i16": 1, "i": 814436}, {"n": "vp_dip", "nv": 1002, "ni": 6000, "p": 826436, "d": 832448, "i16": 1, "i": 835456}, {"n": "sagittali", "nv": 1253, "ni": 7494, "p": 847456, "d": 854974, "i16": 1, "i": 858736}, {"n": "d_cart", "nv": 2403, "ni": 14790, "p": 873724, "i16": 1, "i": 888144}, {"n": "cl_mcp_rad", "nv": 800, "ni": 4800, "p": 917724, "d": 922524, "i16": 1, "i": 924924}, {"n": "cl_mcp_uln", "nv": 807, "ni": 4794, "p": 934524, "d": 939366, "i16": 1, "i": 941788}, {"n": "cl_pip_rad", "nv": 804, "ni": 4800, "p": 951376, "d": 956200, "i16": 1, "i": 958612}, {"n": "cl_pip_uln", "nv": 794, "ni": 4740, "p": 968212, "d": 972976, "i16": 1, "i": 975360}, {"n": "cl_dip_rad", "nv": 776, "ni": 4632, "p": 984840, "d": 989496, "i16": 1, "i": 991824}, {"n": "cl_dip_uln", "nv": 756, "ni": 4512, "p": 1001088, "d": 1005624, "i16": 1, "i": 1007892}, {"n": "d_cute", "nv": 4623, "ni": 27000, "p": 1016916, "i16": 1, "i": 1044656}]}</script>
@@ -829,6 +863,12 @@ const sheet=document.getElementById('sheet'),bL=document.getElementById('bList')
 bL.addEventListener('click',()=>{const o=sheet.classList.toggle('open');bL.setAttribute('aria-expanded',o);bL.textContent=o?'Chiudi elenco':'Elenco';setTimeout(measure,280);});
 function measure(){document.documentElement.style.setProperty('--sheetH',(innerWidth>=900?0:sheet.offsetHeight)+'px');}
 addEventListener('resize',measure);measure();
+/* smartphone: pannello richiudibile dalla linguetta; chiuso all'avvio, si chiude quando si apre una card */
+const compact=matchMedia('(max-width:600px),(orientation:landscape) and (max-height:500px)'),bS=document.getElementById('bSheet');
+function setSheet(o){sheet.classList.toggle('collapsed',!o);bS.setAttribute('aria-expanded',o);}
+bS.addEventListener('click',()=>{const o=sheet.classList.contains('collapsed');if(o&&!card.hidden)select(null);setSheet(o);});
+new MutationObserver(()=>{if(!card.hidden&&compact.matches)setSheet(false);}).observe(card,{attributes:true,attributeFilter:['hidden']});
+compact.addEventListener('change',e=>{if(e.matches)setSheet(false);});
 
 /* ============ Loop e costruzione ============ */
 let building=true,lastR=0;
