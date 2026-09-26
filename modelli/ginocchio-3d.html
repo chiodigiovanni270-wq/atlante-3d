@@ -90,6 +90,35 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   #card{left:16px;right:auto;bottom:16px;margin:0;width:400px}
 }
 @media (prefers-reduced-motion:reduce){#list{transition:none}}
+@media (max-width:430px){.views{position:absolute;top:100%;right:14px;margin-top:6px}}
+/* ===== Smartphone: pannello richiudibile e card compatta ===== */
+.sheet-tab{display:none}
+@media (max-width:600px),(orientation:landscape) and (max-height:500px){
+  :root{--tabH:44px}
+  #sheet{left:0;right:0;bottom:0;width:auto;border:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+    padding:0 max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(12px,env(safe-area-inset-left,0px));
+    transition:transform .25s ease,visibility 0s}
+  #sheet.collapsed{transform:translateY(100%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  .sheet-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    position:absolute;bottom:100%;left:50%;transform:translateX(-50%);visibility:visible;
+    height:var(--tabH);padding:0 22px;border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;
+    background:var(--panel);box-shadow:0 -4px 14px rgba(0,0,0,.3);font-size:13.5px;font-weight:600;white-space:nowrap;
+    transition:height .25s ease,padding-bottom .25s ease}
+  #sheet.collapsed .sheet-tab{height:calc(var(--tabH) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+  .sheet-tab .grip{width:32px;height:4px;border-radius:2px;background:var(--line)}
+  .sheet-tab .car{display:inline-block;color:var(--accent);transition:transform .25s}
+  #sheet:not(.collapsed) .sheet-tab .car{transform:rotate(180deg)}
+  .sheet-body{max-height:60vh;max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;padding-top:10px}
+  #sheet.open #list{max-height:none}  /* un solo scorrimento: quello del pannello */
+  #card{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;margin:0 auto;
+    bottom:calc(var(--tabH) + env(safe-area-inset-bottom,0px) + 8px);padding:9px 12px 10px;
+    max-height:35vh;max-height:35dvh;display:flex;flex-direction:column}
+  #card h2{font-size:17px}
+  #card .cat{margin-bottom:4px}
+  #card h2,#card .cat,#card .btns{flex:none}
+  #card .info{flex:1 1 auto;min-height:0;max-height:none;margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){#sheet,.sheet-tab,.sheet-tab .car{transition:none}}
 </style>
 </head>
 <body>
@@ -122,7 +151,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </div>
 </div>
 
-<section id="sheet" aria-label="Strutture anatomiche">
+<section id="sheet" class="collapsed" aria-label="Strutture anatomiche">
+  <button class="sheet-tab" id="bSheet" aria-expanded="false" aria-controls="sheetBody">
+    <span class="grip" aria-hidden="true"></span>
+    <span>Strutture <span class="car" aria-hidden="true">▴</span></span>
+  </button>
+  <div class="sheet-body" id="sheetBody">
   <div class="chips" id="chips"></div>
   <div class="row">
     <div class="left">
@@ -135,6 +169,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   </div>
   <div id="list"></div>
   <p class="credit">Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate.</p>
+  </div>
 </section>
 
 <script id="bpman" type="application/json">{"min": [-10.0, -20.6, -9.6], "max": [8.4, 20.6, 9.2], "meshes": [{"n": "femore", "nv": 13747, "ni": 81615, "p": 0, "t": 82482, "i16": 1, "i": 96232}, {"n": "tibia", "nv": 9976, "ni": 59190, "p": 259464, "t": 319320, "i16": 1, "i": 329296}, {"n": "perone", "nv": 5079, "ni": 29829, "p": 447676, "t": 478150, "i16": 1, "i": 483232}, {"n": "rotula", "nv": 2670, "ni": 16008, "p": 542892, "t": 558912, "i16": 1, "i": 561584}, {"n": "retto", "nv": 3158, "ni": 17235, "p": 593600, "t": 612548, "d": 615706, "i16": 1, "i": 625180}, {"n": "vint", "nv": 3934, "ni": 21891, "p": 659652, "t": 683256, "d": 687190, "i16": 1, "i": 698992}, {"n": "vmed", "nv": 3352, "ni": 19260, "p": 742776, "t": 762888, "d": 766240, "i16": 1, "i": 776296}, {"n": "vlat", "nv": 4181, "ni": 23523, "p": 814816, "t": 839902, "d": 844083, "i16": 1, "i": 856628}, {"n": "sart", "nv": 3350, "ni": 19827, "p": 903676, "t": 923776, "d": 927126, "i16": 1, "i": 937176}, {"n": "grac", "nv": 3447, "ni": 20238, "p": 976832, "t": 997514, "d": 1000961, "i16": 1, "i": 1011304}, {"n": "semit", "nv": 3550, "ni": 20814, "p": 1051780, "t": 1073080, "d": 1076630, "i16": 1, "i": 1087280}, {"n": "semim", "nv": 3513, "ni": 20607, "p": 1128908, "t": 1149986, "d": 1153499, "i16": 1, "i": 1164040}, {"n": "biclong", "nv": 3769, "ni": 21858, "p": 1205256, "t": 1227870, "d": 1231639, "i16": 1, "i": 1242948}, {"n": "bicbrev", "nv": 2058, "ni": 12183, "p": 1286664, "t": 1299012, "d": 1301070, "i16": 1, "i": 1307244}, {"n": "addmag", "nv": 4015, "ni": 23196, "p": 1331612, "t": 1355702, "d": 1359717, "i16": 1, "i": 1371764}, {"n": "gmed", "nv": 3397, "ni": 20043, "p": 1418156, "t": 1438538, "d": 1441935, "i16": 1, "i": 1452128}, {"n": "glat", "nv": 3322, "ni": 19701, "p": 1492216, "t": 1512148, "d": 1515470, "i16": 1, "i": 1525436}, {"n": "plant", "nv": 1779, "ni": 10569, "p": 1564840, "t": 1575514, "d": 1577293, "i16": 1, "i": 1582632}, {"n": "pop", "nv": 1758, "ni": 10500, "p": 1603772, "t": 1614320, "d": 1616078, "i16": 1, "i": 1621352}, {"n": "sol", "nv": 3648, "ni": 21273, "p": 1642352, "t": 1664240, "d": 1667888, "i16": 1, "i": 1678832}, {"n": "tibant", "nv": 3491, "ni": 20412, "p": 1721380, "t": 1742326, "d": 1745817, "i16": 1, "i": 1756292}, {"n": "extdig", "nv": 3349, "ni": 19950, "p": 1797116, "t": 1817210, "d": 1820559, "i16": 1, "i": 1830608}, {"n": "perlong", "nv": 3457, "ni": 20148, "p": 1870508, "t": 1891250, "d": 1894707, "i16": 1, "i": 1905080}, {"n": "itb", "nv": 2461, "ni": 14220, "p": 1945376, "t": 1960142, "d": 1962603, "i16": 1, "i": 1969988}, {"n": "cute", "nv": 8142, "ni": 47997, "p": 1998428, "i16": 1, "i": 2047280}, {"n": "tibpost", "nv": 3435, "ni": 20124, "p": 2143276, "t": 2163886, "d": 2167321, "i16": 1, "i": 2177628}, {"n": "fdl", "nv": 4133, "ni": 22938, "p": 2217876, "t": 2242674, "d": 2246807, "i16": 1, "i": 2259208}, {"n": "fhl", "nv": 3676, "ni": 21234, "p": 2305084, "t": 2327140, "d": 2330816, "i16": 1, "i": 2341844}, {"n": "ehl", "nv": 2540, "ni": 14394, "p": 2384312, "t": 2399552, "d": 2402092, "i16": 1, "i": 2409712}, {"n": "perbrev", "nv": 1779, "ni": 9462, "p": 2438500, "t": 2449174, "d": 2450953, "i16": 1, "i": 2456292}, {"n": "cartfem", "nv": 4890, "ni": 27873, "p": 2475216, "i16": 1, "i": 2504556}, {"n": "carttib", "nv": 1922, "ni": 10530, "p": 2560304, "i16": 1, "i": 2571836}, {"n": "cartrot", "nv": 1474, "ni": 8403, "p": 2592896, "i16": 1, "i": 2601740}, {"n": "menmed", "nv": 1622, "ni": 9720, "p": 2618548, "d": 2628280, "i16": 1, "i": 2633148}, {"n": "menlat", "nv": 1622, "ni": 9720, "p": 2652588, "d": 2662320, "i16": 1, "i": 2667188}, {"n": "menfem", "nv": 1124, "ni": 6720, "p": 2686628, "d": 2693372, "i16": 1, "i": 2696744}, {"n": "trasv", "nv": 562, "ni": 3360, "p": 2710184, "d": 2713556, "i16": 1, "i": 2715244}, {"n": "bprep", "nv": 1502, "ni": 9000, "p": 2721964, "i16": 1, "i": 2730976}, {"n": "bsovra", "nv": 2016, "ni": 12000, "p": 2748976, "i16": 1, "i": 2761072}, {"n": "binfprof", "nv": 1252, "ni": 7500, "p": 2785072, "i16": 1, "i": 2792584}, {"n": "binfsup", "nv": 1252, "ni": 7500, "p": 2807584, "i16": 1, "i": 2815096}, {"n": "bans", "nv": 1237, "ni": 7500, "p": 2830096, "i16": 1, "i": 2837520}, {"n": "bgsm", "nv": 1249, "ni": 7494, "p": 2852520, "i16": 1, "i": 2860016}, {"n": "lca", "nv": 1124, "ni": 6720, "p": 2875004, "d": 2881748, "i16": 1, "i": 2885120}, {"n": "lcp", "nv": 562, "ni": 3360, "p": 2898560, "d": 2901932, "i16": 1, "i": 2903620}, {"n": "lcm", "nv": 772, "ni": 4608, "p": 2910340, "d": 2914972, "i16": 1, "i": 2917288}, {"n": "lcl", "nv": 482, "ni": 2880, "p": 2926504, "d": 2929396, "i16": 1, "i": 2930844}, {"n": "bsovra", "nv": 602, "ni": 3600, "p": 2936604, "i16": 1, "i": 2940216}, {"n": "bprep", "nv": 602, "ni": 3600, "p": 2947416, "i16": 1, "i": 2951028}, {"n": "binfprof", "nv": 600, "ni": 3600, "p": 2958228, "i16": 1, "i": 2961828}, {"n": "binfsup", "nv": 601, "ni": 3594, "p": 2969028, "i16": 1, "i": 2972636}, {"n": "bans", "nv": 595, "ni": 3594, "p": 2979824, "i16": 1, "i": 2983396}, {"n": "bgsm", "nv": 602, "ni": 3600, "p": 2990584, "i16": 1, "i": 2994196}, {"n": "hoffa", "nv": 1502, "ni": 9000, "p": 3001396, "i16": 1, "i": 3010408}, {"n": "menmed", "nv": 1747, "ni": 10494, "p": 3028408, "d": 3038890, "i16": 1, "i": 3044132}, {"n": "menlat", "nv": 1493, "ni": 8994, "p": 3065120, "d": 3074078, "i16": 1, "i": 3078560}]}</script>
@@ -870,6 +905,12 @@ const sheet=document.getElementById('sheet'),bL=document.getElementById('bList')
 bL.addEventListener('click',()=>{const o=sheet.classList.toggle('open');bL.setAttribute('aria-expanded',o);bL.textContent=o?'Chiudi elenco':'Elenco';setTimeout(measure,280);});
 function measure(){document.documentElement.style.setProperty('--sheetH',(innerWidth>=900?0:sheet.offsetHeight)+'px');}
 addEventListener('resize',measure);measure();
+/* smartphone: pannello richiudibile dalla linguetta; chiuso all'avvio, si chiude quando si apre una card */
+const compact=matchMedia('(max-width:600px),(orientation:landscape) and (max-height:500px)'),bS=document.getElementById('bSheet');
+function setSheet(o){sheet.classList.toggle('collapsed',!o);bS.setAttribute('aria-expanded',o);}
+bS.addEventListener('click',()=>{const o=sheet.classList.contains('collapsed');if(o&&!card.hidden)select(null);setSheet(o);});
+new MutationObserver(()=>{if(!card.hidden&&compact.matches)setSheet(false);}).observe(card,{attributes:true,attributeFilter:['hidden']});
+compact.addEventListener('change',e=>{if(e.matches)setSheet(false);});
 
 
 
