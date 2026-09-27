@@ -686,7 +686,7 @@ function makeMat(s){
     case 'cute':m=new THREE.MeshStandardMaterial({color:col,vertexColors:true,roughness:.6,transparent:true,opacity:.3,depthWrite:false});fresnel(m,.55);break;
   }
   if(s.cat!=='caps'&&s.cat!=='cute')m.side=THREE.DoubleSide;
-  if(s.id==='retmed'||s.id==='retlat'){m.transparent=true;m.opacity=.72;m.depthWrite=false;m.side=THREE.FrontSide;}m.userData.baseOpacity=m.opacity;m.userData.baseTransparent=m.transparent;m.userData.baseDepthWrite=m.depthWrite;
+  if(s.id==='retmed'||s.id==='retlat'){m.transparent=true;m.opacity=.72;m.depthWrite=false;m.side=THREE.FrontSide;}if(s.id==='popobl'||s.id==='all'){m.transparent=true;m.opacity=.85;m.depthWrite=false;m.side=THREE.FrontSide;}m.userData.baseOpacity=m.opacity;m.userData.baseTransparent=m.transparent;m.userData.baseDepthWrite=m.depthWrite;
   return m;
 }
 
