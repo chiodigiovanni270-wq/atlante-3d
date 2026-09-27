@@ -3,6 +3,7 @@
    Uso (dalla cartella del progetto):
      node strumenti/stratifica-ginocchio.mjs [--prova]
      node strumenti/capsula-ginocchio.mjs        (dopo: la capsula dipende dalle strutture vicine)
+     node strumenti/borse-ginocchio.mjs          (borse sierose tra i piani)
      node strumenti/percorsi-ginocchio.mjs       (infine: vasi e nervi girano attorno alle strutture)
 
    Le mesh di partenza sono sempre quelle originali (BodyParts3D) lette dalla revisione git ORIGINALE, quindi lo
