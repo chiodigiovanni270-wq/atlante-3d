@@ -239,7 +239,7 @@ if (PROVA) process.exit(0);
 
 /* ============ Scrittura nel file del modello ============ */
 let buf = buf0;
-const old = man.meshes.findIndex(m => m.n === 'capsula');
+const old = man.meshes.findLastIndex(m => m.n === 'capsula');
 if (old >= 0) { // la capsula è sempre in coda al buffer: si tronca e si riscrive
   const m = man.meshes[old]; if (old !== man.meshes.length - 1) throw new Error('mesh capsula non in coda: rigenerare dal file originale');
   buf = buf.subarray(0, m.p); man.meshes.splice(old, 1);

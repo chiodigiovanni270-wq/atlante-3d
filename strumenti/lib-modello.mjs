@@ -22,9 +22,19 @@ const buf = buf0;
 const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
 // posizioni correnti (modificabili con setPos prima della voxelizzazione)
 const override = new Map();
-export function setPos(name, pos) { override.set(name, pos); }
+export function setPos(name, pos) { override.set(name, pos); const t = topo.get(name); if (t) t.pos = pos; }
+// mesh con topologia nuova (posizioni, indici, tag, direzioni delle fibre)
+const topo = new Map();
+export function setMesh(name, mesh) { topo.set(name, mesh); override.set(name, mesh.pos); }
+// attributi per vertice originali: tag (colore muscolo/tendine) e direzione delle fibre
+export function attrs(name) {
+  const t = topo.get(name); if (t) return { tag: t.tag, fdir: t.fdir };
+  const m = man.meshes.findLast(x => x.n === name);
+  return { tag: m.t !== undefined ? new Uint8Array(ab, m.t, m.nv).slice() : null, fdir: m.d !== undefined ? new Int8Array(ab, m.d, m.nv * 3).slice() : null };
+}
 export function REAL(name) {
-  const m = man.meshes.find(x => x.n === name), mn = man.min, mx = man.max;
+  const t = topo.get(name); if (t) return { pos: t.pos, idx: t.idx, nv: t.pos.length / 3 };
+  const m = man.meshes.findLast(x => x.n === name), mn = man.min, mx = man.max;
   let pos = override.get(name);
   if (!pos) { const q = new Uint16Array(ab, m.p, m.nv * 3); pos = new Float32Array(m.nv * 3);
     for (let i = 0; i < m.nv * 3; i++) { const k = i % 3; pos[i] = mn[k] + q[i] / 65535 * (mx[k] - mn[k]); } }
@@ -33,7 +43,7 @@ export function REAL(name) {
 }
 
 /* ============ Voxel ============ */
-export const O = [-6.5, -5, -6], H = 0.1, NX = 130, NY = 145, NZ = 128, NXY = NX * NY, N = NXY * NZ;
+export const O = [-6.5, -10, -6], H = 0.1, NX = 130, NY = 195, NZ = 128, NXY = NX * NY, N = NXY * NZ;
 export const vi = (i, j, k) => i + NX * j + NXY * k;
 export const or = (A, B) => { for (let i = 0; i < N; i++) A[i] |= B[i]; return A; };
 // solido: riempimento per parità lungo z (mesh chiuse) + superficie campionata
@@ -104,9 +114,32 @@ export function sample(F, x, y, z) { // trilineare sui centri dei voxel
 /* ============ Scrittura ============ */
 // sovrascrive sul posto le posizioni (stesso numero di vertici) di una mesh esistente
 export function writePos(buf, name, pos) {
-  const m = man.meshes.find(x => x.n === name), q = new Uint16Array(m.nv * 3);
+  const m = man.meshes.findLast(x => x.n === name), q = new Uint16Array(m.nv * 3);
   for (let i = 0; i < m.nv * 3; i++) { const k = i % 3; q[i] = Math.round(clamp((pos[i] - man.min[k]) / (man.max[k] - man.min[k]), 0, 1) * 65535); }
   Buffer.from(q.buffer).copy(buf, m.p);
+}
+// ricompone il buffer: mesh con topologia nuova (setMesh) o posizioni nuove (setPos); il resto copiato com'è
+const quant = pos => { const q = new Uint16Array(pos.length); for (let i = 0; i < pos.length; i++) { const k = i % 3; q[i] = Math.round(clamp((pos[i] - man.min[k]) / (man.max[k] - man.min[k]), 0, 1) * 65535); } return Buffer.from(q.buffer); };
+export function repack() {
+  const parts = []; let len = 0; const seen = new Map();
+  const push = b => { const pad = (4 - len % 4) % 4; if (pad) { parts.push(Buffer.alloc(pad)); len += pad; } const off = len; parts.push(b); len += b.length; return off; };
+  const old = (off, n) => { const k = off + ':' + n; if (!seen.has(k)) seen.set(k, push(buf0.subarray(off, off + n))); return seen.get(k); };
+  const live = new Map(); man.meshes.forEach((m, i) => live.set(m.n, i));
+  man.meshes = man.meshes.map((m, i) => {
+    const e = { ...m }, isLive = live.get(m.n) === i, T = isLive && topo.get(m.n), P = isLive && override.get(m.n);
+    if (T) {
+      const nv = T.pos.length / 3, i16 = nv < 65536; e.nv = nv; e.ni = T.idx.length; e.i16 = i16 ? 1 : 0;
+      e.p = push(quant(T.pos)); delete e.t; delete e.d;
+      if (T.tag) e.t = push(Buffer.from(Uint8Array.from(T.tag).buffer)); if (T.fdir) e.d = push(Buffer.from(Int8Array.from(T.fdir).buffer));
+      e.i = push(Buffer.from((i16 ? Uint16Array.from(T.idx) : Uint32Array.from(T.idx)).buffer));
+    } else {
+      e.p = P ? push(quant(P)) : old(m.p, m.nv * 6);
+      if (m.t !== undefined) e.t = old(m.t, m.nv); if (m.d !== undefined) e.d = old(m.d, m.nv * 3);
+      e.i = old(m.i, m.ni * (m.i16 ? 2 : 4));
+    }
+    return e;
+  });
+  return Buffer.concat(parts);
 }
 export function saveFile(buf) {
   const html = M.html.replace(reMan, (_, a, b, c) => a + JSON.stringify(man) + c).replace(reDat, (_, a, b, c) => a + buf.toString('base64') + c);

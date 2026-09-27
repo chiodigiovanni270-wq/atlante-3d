@@ -1,125 +1,182 @@
-/* Elimina le compenetrazioni tra legamenti collaterali e muscoli del ginocchio, rispettando i rapporti
-   anatomici descritti in letteratura.
+/* Rapporti anatomici tra legamenti collaterali, zampa d'oca, semimembranoso e bicipite femorale del ginocchio.
 
-   Uso (dalla cartella del progetto):
+   Uso (dalla cartella del progetto, partendo dalle mesh originali):
      node strumenti/stratifica-ginocchio.mjs [--prova]
      node strumenti/capsula-ginocchio.mjs        (dopo: la capsula dipende dalle strutture vicine)
 
-   Con --prova stampa solo le compenetrazioni prima e dopo, senza modificare il file.
+   Con --prova stampa solo le verifiche, senza modificare il file.
 
-   Rapporti anatomici applicati:
-   - Zampa d'oca (sartorio, gracile, semitendinoso) e borsa anserina superficiali al LCM superficiale;
-     il sartorio è il più superficiale (Warren LF, Marshall JL, JBJS Am 1979;61:56-62).
-   - Semimembranoso: il tendine principale decorre e si inserisce postero-medialmente, dietro al LCM;
-     il braccio anteriore (tibiale) passa profondo al LCM (LaPrade RF et al., JBJS Am 2007;89:2000-10).
-   - Bicipite femorale: sopra la testa del perone decorre posteriormente al LCL; all'inserzione il capo
-     lungo resta laterale (superficiale) al LCL, mentre il braccio anteriore del capo breve passa medialmente
-     (in profondità) al LCL (LaPrade RF et al., AJSM 2003;31:854-60; Terry GC, LaPrade RF, AJSM 1996).
+   Anatomia di riferimento:
+   - LCM superficiale: banda piatta dall'epicondilo mediale alla tibia (~6 cm sotto l'interlinea), coperta
+     distalmente da sartorio, gracile e semitendinoso con la borsa anserina interposta
+     (Warren LF, Marshall JL, JBJS Am 1979;61:56-62; LaPrade RF et al., JBJS Am 2007;89:2000-10).
+     La mesh del LCM non viene modificata: si spostano le strutture che la attraversano.
+   - Semimembranoso: inserzione diretta sulla tibia postero-mediale subito sotto l'interlinea; il braccio
+     anteriore passa profondo al LCM e si inserisce ~1 cm sotto l'interlinea (LaPrade 2007). Non prosegue
+     lungo la tibia mediale: la coda della mesh BodyParts3D oltre l'inserzione viene rimossa e il tendine
+     affonda nella corticale all'inserzione (breve tratto tendineo dopo la giunzione mio-tendinea).
+   - Semitendinoso: postero-mediale e superficiale al semimembranoso, poi curva in avanti sopra il LCM verso
+     la zampa d'oca, sotto il gracile e il sartorio.
+   - Bicipite femorale: all'interlinea decorre posteriormente al LCL; sulla testa del perone il braccio
+     anteriore del capo lungo passa lateralmente (superficiale) al LCL, che quindi vi si inserisce al di sotto
+     (Terry GC, LaPrade RF, AJSM 1996;24:2-8; LaPrade RF et al., AJSM 2003;31:854-60).
 
-   I muscoli (BodyParts3D) si toccano il meno possibile: dove un tendine deve stare sopra un legamento,
-   è il legamento (struttura modellata) a passare sotto, appiattendosi verso l'osso.
-
-   Tipi di correzione (ogni regola voxelizza le strutture di riferimento e ripete finché serve):
-   - su:  la struttura viene sollevata sopra il riferimento lungo la normale all'osso; si sposta tutta la
-          colonna di tessuto (per intero fino a PIENO, poi sfumando fino a RAGGIO), senza schiacciarla;
-   - dir: come su, ma in una direzione fissa (es. indietro), per portarla dietro al riferimento;
-   - giu: la parte superficiale della struttura viene compressa sotto il riferimento, verso l'osso (al più
-          0,5 mm dentro la corticale, dove la mesh muscolare poggia già sull'osso).
-   Le posizioni sono riscritte sul posto nella mesh (stesso numero di vertici). */
-import { buf0, REAL, setPos, N, or, solid, edt, sample, sstep, clamp, log, writePos, saveFile } from './lib-modello.mjs';
+   Metodo: nessuna spinta locale. Ogni struttura viene spostata per sezioni trasversali (fasce di 0,5 mm lungo
+   l'asse verticale): per ogni sezione si calcola lo spostamento minimo che la libera dalla struttura di
+   riferimento in una direzione prestabilita; il profilo lungo la struttura è un inviluppo gaussiano ampio
+   (ogni sezione raggiunge lo spostamento necessario, le vicine lo seguono con una campana), così il decorso
+   cambia con curve dolci e la sezione non si deforma. Si lavora solo nella regione del ginocchio (ZONA).
+   Con --dettaglio stampa anche i livelli degli spostamenti e delle compenetrazioni residue. */
+import { REAL, setPos, setMesh, attrs, N, or, solid, edt, sample, sstep, clamp, log, repack, saveFile } from './lib-modello.mjs';
 
 const PROVA = process.argv.includes('--prova');
-const MARGINE = 0.08, PIENO = 0.35, RAGGIO = 0.9, PASSATE = 8, LISCIA = 6;
-const vicini = new Map();
-const sopraArt = (x, y) => y > -1.2, sottoArt = (x, y) => y <= -1.2;       // femore/interlinea vs tibia
-const REGOLE = [
-  { tipo: 'dir', d: [0, 0, -1], sposta: ['semim'], rif: ['lcm'], dove: sopraArt },    // tendine principale dietro al LCM
-  { tipo: 'giu', sposta: ['lcm'], rif: ['grac', 'semit', 'sart', 'bans'], liscia: 20 },          // LCM profondo alla zampa d'oca
-  { tipo: 'giu', sposta: ['semim'], rif: ['lcm'], dove: sottoArt },                   // braccio anteriore profondo al LCM
-  { tipo: 'dir', d: [0, 0, -1], sposta: ['biclong', 'bicbrev'], rif: ['lcl'], dove: (x, y) => y > -3.0, max: 0.6 }, // bicipite dietro al LCL fino alla testa del perone
-  { tipo: 'su', sposta: ['lcm'], rif: ['semim'], dove: sottoArt, max: 0.3, passate: 1 },   // residui: al più 3 mm
-];
-const CONTROLLO = [['lcm', 'grac'], ['lcm', 'semit'], ['lcm', 'semim'], ['lcm', 'sart'], ['lcm', 'bans'], ['lcl', 'biclong'], ['lcl', 'bicbrev'],
-  ['sart', 'grac'], ['sart', 'semit'], ['grac', 'semit'], ['semim', 'gmed'], ['biclong', 'glat'], ['bicbrev', 'glat'], ['biclong', 'itb']];
+const BIN = 0.05, MARGINE = 0.06, TMAX = 1.2, PASSATE = 5;
+const ZONA = y => y > -9.5 && y < 5; // solo la regione del ginocchio: coscia e gamba restano come sono
 
-// campo con segno dell'osso (positivo fuori) e sua normale
+const REGOLE = [
+  // semimembranoso: coda oltre l'inserzione tagliata (affonda nella tibia tra y -2,1 e -3,0);
+  // all'altezza dei condili il tendine decorre dietro al LCM, sotto l'interlinea il braccio anteriore gli passa sotto
+  { tipo: 'taglia', nome: 'semim', ySink: -2.1, yCut: -3.0, tendine: [0.4, -0.9],
+    affonda: (x, y, z) => sstep(-0.75, -0.35, z) * sstep(-0.5, -1.1, y) }, // punta del braccio anteriore sotto il LCM
+  { tipo: 'sez', sposta: ['semim'], rif: ['lcm'], modo: 'dietro', dove: y => y > -1.4, sigma: 0.9, max: 0.9 },
+  { tipo: 'sez', sposta: ['semim'], rif: ['lcm'], modo: 'dentro', dove: y => y <= -1.4, sigma: 0.4, max: 0.4 },
+  // semitendinoso postero-mediale e superficiale al semimembranoso
+  { tipo: 'sez', sposta: ['semit'], rif: ['semim'], modo: 'postero-mediale', dir: [0.6, 0, -0.8], dove: y => y < 4, sigma: 1.0, max: 0.9 },
+  { tipo: 'sez', sposta: ['semit'], rif: ['gmed'], modo: 'mediale', dir: [1, 0, 0], dove: y => y < -4, sigma: 0.8, max: 0.3 },
+  // borsa anserina e zampa d'oca superficiali al LCM, sartorio il più superficiale
+  // (il LCM originale, banda liscia fino all'inserzione tibiale, non si tocca; la borsa anserina, sottile e
+  //  comprimibile, gli sta sopra e i tendini vi scorrono sopra senza sollevarsi dall'inserzione)
+  { tipo: 'sez', sposta: ['bans'], rif: ['lcm'], modo: 'fuori', sigma: 0.5, max: 0.25 },
+  { tipo: 'sez', sposta: ['grac', 'semit'], rif: ['lcm'], modo: 'fuori', sigma: 0.8, max: 0.7 },
+  { tipo: 'sez', sposta: ['grac'], rif: ['semit'], modo: 'fuori', dove: y => y < -4, sigma: 0.8, max: 0.3 }, // gracile sopra il semitendinoso
+  { tipo: 'sez', sposta: ['sart'], rif: ['lcm', 'grac', 'semit'], modo: 'fuori', sigma: 0.8, max: 0.6 },
+  // bicipite (capo lungo e breve) posteriore al LCL all'interlinea, raccordato con l'inserzione sul perone
+  { tipo: 'sez', sposta: ['biclong', 'bicbrev'], rif: ['lcl'], modo: 'dietro', dove: y => y > -2.2, sigma: 0.9, max: 0.8 },
+  // sulla testa del perone il braccio anteriore del capo lungo passa lateralmente al LCL: il bicipite si solleva quanto basta
+  { tipo: 'sez', sposta: ['biclong', 'bicbrev'], rif: ['lcl'], modo: 'fuori', dove: y => y <= -1.8, sigma: 0.5, max: 0.5 },
+];
+const CONTROLLO = [['lcm', 'semim'], ['semim', 'gmed'], ['semit', 'gmed'], ['lcm', 'grac'], ['lcm', 'semit'], ['lcm', 'sart'], ['lcm', 'bans'], ['semit', 'semim'], ['grac', 'semit'],
+  ['sart', 'grac'], ['lcl', 'biclong'], ['lcl', 'bicbrev'], ['biclong', 'glat'], ['bicbrev', 'glat'], ['biclong', 'plant']];
+
+// campo con segno dell'osso (positivo fuori) e normale
 const BONES = new Uint8Array(N); for (const n of ['femore', 'tibia', 'perone', 'rotula']) or(BONES, solid(n));
 const Do = edt(BONES), Di = edt(BONES, true), GB = new Float32Array(N);
 for (let i = 0; i < N; i++) GB[i] = Do[i] - Di[i] + (BONES[i] ? 0.05 : -0.05);
 const normal = (x, y, z, e = 0.05) => { const n = [sample(GB, x + e, y, z) - sample(GB, x - e, y, z), sample(GB, x, y + e, z) - sample(GB, x, y - e, z), sample(GB, x, y, z + e) - sample(GB, x, y, z - e)]; const l = Math.hypot(...n) || 1; return n.map(v => v / l); };
 
-// percentuale di vertici di a penetrati in b per più di 0,5 mm, e viceversa
+// compenetrazione nella regione del ginocchio: % di vertici di a dentro b (>0,5 mm) e viceversa
 function compenetrazione(a, b) {
   const Db = edt(solid(b), true), Da = edt(solid(a), true), A = REAL(a), B = REAL(b); let ca = 0, cb = 0;
-  for (let i = 0; i < A.nv; i++) if (sample(Db, A.pos[3 * i], A.pos[3 * i + 1], A.pos[3 * i + 2]) > 0.1) ca++;
-  for (let i = 0; i < B.nv; i++) if (sample(Da, B.pos[3 * i], B.pos[3 * i + 1], B.pos[3 * i + 2]) > 0.1) cb++;
-  return `${a}/${b} ${(100 * ca / A.nv).toFixed(1)}%·${(100 * cb / B.nv).toFixed(1)}%`;
+  let na = 0, nb = 0; const zona = y => y > -8 && y < 5; // solo la regione del ginocchio
+  for (let i = 0; i < A.nv; i++) if (zona(A.pos[3 * i + 1])) { na++; if (sample(Db, A.pos[3 * i], A.pos[3 * i + 1], A.pos[3 * i + 2]) > 0.05) ca++; }
+  for (let i = 0; i < B.nv; i++) if (zona(B.pos[3 * i + 1])) { nb++; if (sample(Da, B.pos[3 * i], B.pos[3 * i + 1], B.pos[3 * i + 2]) > 0.05) cb++; }
+  return `${a}/${b} ${(100 * ca / Math.max(1, na)).toFixed(1)}%·${(100 * cb / Math.max(1, nb)).toFixed(1)}%`;
 }
 const rapporto = t => console.log(t, CONTROLLO.map(([a, b]) => compenetrazione(a, b)).join('  '));
 rapporto('Prima:');
 
-const spostati = new Set(), orig = new Map();
-for (const R of REGOLE) {
-  for (let pass = 0; pass < (R.passate ?? PASSATE); pass++) {
-    const SO = new Uint8Array(N); for (const n of R.rif) or(SO, solid(n)); const DS = edt(SO);
-    const occ = (x, y, z) => sample(DS, x, y, z) < 0.01;
-    let tot = 0, maxd = 0;
+const orig = new Map(), keep = name => { if (!orig.has(name)) orig.set(name, new Float32Array(REAL(name).pos)); };
+const blur = (a, s) => { const r = Math.ceil(3 * s), out = new Float64Array(a.length); for (let k = 0; k < a.length; k++) { let v = 0, w = 0; for (let j = -r; j <= r; j++) { const q = k + j; if (q < 0 || q >= a.length) continue; const ww = Math.exp(-(j * j) / (2 * s * s)); v += a[q] * ww; w += ww; } out[k] = v / w; } return out; };
+// inviluppo gaussiano: ogni sezione raggiunge lo spostamento richiesto, i vicini lo seguono con una campana di ampiezza s
+const inviluppo = (a, s) => Array.from(a, (_, k) => { let m = 0; const r = Math.ceil(3 * s); for (let j = -r; j <= r; j++) { const q = a[k + j]; if (q > 0) m = Math.max(m, q * Math.exp(-(j * j) / (2 * s * s))); } return m; });
+
+function taglia({ nome, ySink, yCut, affonda, tendine }) {
+  keep(nome);
+  const { pos, idx, nv } = REAL(nome), { tag, fdir } = attrs(nome), P = new Float32Array(pos);
+  for (let i = 0; i < nv; i++) { // accompagna il tendine dentro la corticale verso l'inserzione
+    const x = P[3 * i], y = P[3 * i + 1], z = P[3 * i + 2];
+    const s = Math.max(y > ySink ? 0 : sstep(ySink, yCut, y), affonda ? affonda(x, y, z) : 0); if (s <= 0) continue;
+    const g = sample(GB, x, y, z); if (g < -0.08) continue;
+    const n = normal(x, y, z), d = s * (g + 0.08); P[3 * i] -= n[0] * d; P[3 * i + 1] -= n[1] * d; P[3 * i + 2] -= n[2] * d;
+  }
+  const TG = tag && Uint8Array.from(tag); // giunzione mio-tendinea: breve tendine prima dell'inserzione
+  if (TG && tendine) for (let i = 0; i < nv; i++) if (TG[i] < 250) TG[i] = Math.max(TG[i], Math.round(200 * sstep(tendine[0], tendine[1], P[3 * i + 1]))); // 250/251: sezioni di taglio
+  const T = []; for (let t = 0; t < idx.length; t += 3) { const a = idx[t], b = idx[t + 1], c = idx[t + 2]; if ((P[3 * a + 1] + P[3 * b + 1] + P[3 * c + 1]) / 3 >= yCut) T.push(a, b, c); }
+  const map = new Int32Array(nv).fill(-1), np = [], nt = [], nf = [], ni = [];
+  for (const o of T) { if (map[o] < 0) { map[o] = np.length / 3; np.push(P[3 * o], P[3 * o + 1], P[3 * o + 2]); if (tag) nt.push(TG[o]); if (fdir) nf.push(fdir[3 * o], fdir[3 * o + 1], fdir[3 * o + 2]); } ni.push(map[o]); }
+  // chiusura dei bordi aperti (dentro l'osso) con un ventaglio
+  const cnt = new Map(), dir = new Map(); for (let t = 0; t < ni.length; t += 3) for (let r = 0; r < 3; r++) { const a = ni[t + r], b = ni[t + (r + 1) % 3], k = Math.min(a, b) + '_' + Math.max(a, b); cnt.set(k, (cnt.get(k) || 0) + 1); dir.set(k, [a, b]); }
+  const next = new Map(); for (const [k, c] of cnt) if (c === 1) { const [a, b] = dir.get(k); next.set(b, a); }
+  const visti = new Set(); let loops = 0;
+  for (const s0 of next.keys()) {
+    if (visti.has(s0)) continue; const L = []; let v = s0; while (!visti.has(v) && next.has(v)) { visti.add(v); L.push(v); v = next.get(v); }
+    if (L.length < 3) continue; loops++;
+    const c = np.length / 3, m = [0, 1, 2].map(k => L.reduce((s, q) => s + np[3 * q + k], 0) / L.length); np.push(...m);
+    if (tag) nt.push(Math.round(L.reduce((s, q) => s + nt[q], 0) / L.length));
+    if (fdir) nf.push(...[0, 1, 2].map(k => Math.round(L.reduce((s, q) => s + nf[3 * q + k], 0) / L.length)));
+    for (let j = 0; j < L.length; j++) ni.push(L[j], L[(j + 1) % L.length], c);
+  }
+  setMesh(nome, { pos: Float32Array.from(np), idx: Uint32Array.from(ni), tag: tag ? Uint8Array.from(nt) : null, fdir: fdir ? Int8Array.from(nf) : null });
+  log(`taglio ${nome}: ${nv} → ${np.length / 3} vertici, ${loops} bordi chiusi`);
+}
+
+const fasce = new Map(); // intervallo verticale fisso per struttura
+// direzione di uscita più breve: gradiente della distanza con segno (A: distanza da fuori, B: da dentro)
+const gradS = (A, B, x, y, z, e = 0.05) => { const f = (a, b, c) => sample(A, a, b, c) - sample(B, a, b, c); const g = [f(x + e, y, z) - f(x - e, y, z), f(x, y + e, z) - f(x, y - e, z), f(x, y, z + e) - f(x, y, z - e)]; const l = Math.hypot(...g); return l > 1e-6 ? g.map(v => v / l) : null; };
+function sezioni(R) {
+  const tot = new Map();
+  for (let pass = 0; pass < PASSATE; pass++) {
+    const SO = new Uint8Array(N); for (const n of R.rif) or(SO, solid(n)); const DO = edt(SO), DOi = R.esci ? edt(SO, true) : null;
+    let any = false, maxA = 0;
     for (const name of R.sposta) {
-      const { pos, nv } = REAL(name), src = [];
-      if (!orig.has(name)) orig.set(name, new Float32Array(pos));
+      keep(name);
+      const { pos, nv } = REAL(name);
+      if (!fasce.has(name)) { let a = Infinity, b = -Infinity; for (let i = 0; i < nv; i++) { a = Math.min(a, pos[3 * i + 1]); b = Math.max(b, pos[3 * i + 1]); } fasce.set(name, [a - 1, Math.ceil((b - a + 2) / BIN) + 1]); }
+      const [y0, nb] = fasce.get(name), bin = y => clamp((y - y0) / BIN, 0, nb - 1);
+      const need = new Float64Array(nb), D = [new Float64Array(nb), new Float64Array(nb), new Float64Array(nb)];
       for (let i = 0; i < nv; i++) {
-        const x = pos[3 * i], y = pos[3 * i + 1], z = pos[3 * i + 2], g = sample(GB, x, y, z); if (g < -1 || g > 2) continue;
-        if (R.dove && !R.dove(x, y, z)) continue;
-        if (R.tipo === 'dir') { // se il vertice è dentro (o a ridosso di) il riferimento, va portato oltre, nella direzione d
-          const d = R.d; let s0 = null; for (let t = -MARGINE; t <= MARGINE; t += 0.02) if (occ(x + d[0] * t, y + d[1] * t, z + d[2] * t)) { s0 = t; break; }
-          if (s0 === null) continue; let t = s0; while (t < 2 && occ(x + d[0] * t, y + d[1] * t, z + d[2] * t)) t += 0.02;
-          src.push([x, y, z, Math.min(R.max ?? 9, t + MARGINE), d]); continue;
-        }
-        const n = normal(x, y, z), f = [x - n[0] * g, y - n[1] * g, z - n[2] * g];
-        let bot = null, top = null;
-        for (let d = -0.3; d < Math.min(1.6, g + 0.6); d += 0.02) if (occ(f[0] + n[0] * d, f[1] + n[1] * d, f[2] + n[2] * d)) { if (bot === null) bot = d; top = d; } else if (bot !== null) break;
-        if (bot === null || bot > g + 0.3) continue; // solo riferimenti a ridosso del vertice
-        if (R.tipo === 'su') { const need = Math.min(R.max ?? 9, Math.max(top, 0) + MARGINE - g); if (need > 0.005) src.push([x, y, z, need, n]); }
-        else if (g > -0.05 && g >= bot - MARGINE && g <= top + 0.3) { const need = g - Math.max(-0.05, bot - MARGINE); if (need > 0.005) src.push([x, y, z, need, n]); }
+        const x = pos[3 * i], y = pos[3 * i + 1], z = pos[3 * i + 2]; if (!ZONA(y) || (R.dove && !R.dove(y))) continue;
+        if (sample(DO, x, y, z) >= MARGINE) continue;
+        // direzioni possibili: indietro; oppure lungo la normale all'osso (fuori/dentro) o, se più breve, lungo l'asse medio-laterale
+        const n = normal(x, y, z), cand = R.dir ? [R.dir] : (R.modo === 'dietro' ? [[0, 0, -1]] : R.modo === 'fuori' ? [n, [Math.sign(x), 0, 0]] : [n.map(v => -v)]).concat(R.dirs || []);
+        if (R.esci) { const g = gradS(DO, DOi, x, y, z); if (g) cand.push(g); } // uscita più breve dal riferimento
+        let t = Infinity, d = null;
+        for (const c of cand) { let u = 0.02; for (; u <= TMAX; u += 0.02) if (sample(DO, x + c[0] * u, y + c[1] * u, z + c[2] * u) >= MARGINE) break; if (u <= TMAX && u < t) { t = u; d = c; } }
+        if (!d) continue;
+        const b = Math.round(bin(y)); need[b] = Math.max(need[b], t); for (let k = 0; k < 3; k++) D[k][b] += d[k] * t;
       }
-      if (!src.length) continue;
+      // anche il caso inverso: punti del riferimento racchiusi dentro la struttura (legamento sottile dentro un tendine spesso)
+      const SMs = solid(name), DMi = edt(SMs, true), DMo = R.esci ? edt(SMs) : null;
+      for (const rn of R.rif) { const Q = REAL(rn);
+        for (let i = 0; i < Q.nv; i++) {
+          const x = Q.pos[3 * i], y = Q.pos[3 * i + 1], z = Q.pos[3 * i + 2]; if (!ZONA(y) || (R.dove && !R.dove(y))) continue;
+          if (sample(DMi, x, y, z) < 0.03) continue;
+          const n = normal(x, y, z), cand = R.dir ? [R.dir] : (R.modo === 'dietro' ? [[0, 0, -1]] : R.modo === 'fuori' ? [n, [Math.sign(x), 0, 0]] : [n.map(v => -v)]).concat(R.dirs || []);
+          if (R.esci) { const g = gradS(DMo, DMi, x, y, z); if (g) cand.push(g.map(v => -v)); }
+          let t = Infinity, d = null;
+          for (const c of cand) { let u = 0.02; for (; u <= TMAX; u += 0.02) if (sample(DMi, x - c[0] * u, y - c[1] * u, z - c[2] * u) <= 0) break; if (u <= TMAX && u + MARGINE < t) { t = u + MARGINE; d = c; } }
+          if (!d) continue;
+          const b = Math.round(bin(y)); need[b] = Math.max(need[b], t); for (let k = 0; k < 3; k++) D[k][b] += d[k] * t;
+        } }
+      if (Math.max(...need) < 0.01) continue; any = true;
+      const s = R.sigma / BIN, A = blur(inviluppo(need, s), s / 4), Dx = blur(D[0], 3 * s), Dy = blur(D[1], 3 * s), Dz = blur(D[2], 3 * s); // direzione molto regolare
+      const T0 = tot.get(name) || new Float64Array(nb);
+      for (let k = 0; k < nb; k++) { A[k] = Math.min(A[k], Math.max(0, R.max - T0[k])); T0[k] += A[k]; maxA = Math.max(maxA, T0[k]); }
+      tot.set(name, T0);
       const out = new Float32Array(pos);
       for (let i = 0; i < nv; i++) {
-        const x = pos[3 * i], y = pos[3 * i + 1], z = pos[3 * i + 2]; let best = 0, bn = null;
-        for (const [sx, sy, sz, need, n] of src) {
-          const dx = x - sx, dy = y - sy, dz = z - sz; let v;
-          if (R.tipo !== 'giu') { // distanza tangenziale: si sposta tutta la colonna oltre la sorgente
-            const h = dx * n[0] + dy * n[1] + dz * n[2]; if (h < -0.15 || h > 3) continue;
-            const d = Math.hypot(dx - n[0] * h, dy - n[1] * h, dz - n[2] * h); if (d >= RAGGIO) continue; v = need * (1 - sstep(PIENO, RAGGIO, d));
-          } else { const d = Math.hypot(dx, dy, dz); if (d >= 0.45) continue; v = need * (1 - sstep(0.15, 0.45, d)); }
-          if (v > best) { best = v; bn = n; }
-        }
-        if (!bn) continue;
-        if (R.tipo === 'giu') { const g = sample(GB, x, y, z); best = Math.min(best, Math.max(0, g + 0.05)); if (!best) continue; best = -best; }
-        out[3 * i] += bn[0] * best; out[3 * i + 1] += bn[1] * best; out[3 * i + 2] += bn[2] * best; maxd = Math.max(maxd, Math.abs(best));
+        const f = bin(pos[3 * i + 1]), k0 = Math.floor(f), k1 = Math.min(nb - 1, k0 + 1), u = f - k0, lerp = a => a[k0] * (1 - u) + a[k1] * u;
+        const a = lerp(A); if (a < 1e-4) continue;
+        const v = [lerp(Dx), lerp(Dy), lerp(Dz)], l = Math.hypot(...v); if (l < 1e-9) continue;
+        for (let c = 0; c < 3; c++) out[3 * i + c] += v[c] / l * a;
       }
-      // levigatura degli spostamenti lungo la mesh: niente increspature né pieghe
-      const { idx } = REAL(name), D = new Float32Array(nv * 3); for (let i = 0; i < nv * 3; i++) D[i] = out[i] - pos[i];
-      if (!vicini.has(name)) { const nb = Array.from({ length: nv }, () => new Set()); for (let t = 0; t < idx.length; t += 3) for (let r = 0; r < 3; r++) { const a = idx[t + r], b = idx[t + (r + 1) % 3]; nb[a].add(b); nb[b].add(a); } vicini.set(name, nb); }
-      const nb = vicini.get(name);
-      for (let it = 0; it < (R.liscia ?? LISCIA); it++) { const E = D.slice(); for (let i = 0; i < nv; i++) { if (!nb[i].size) continue; let sx = 0, sy = 0, sz = 0; for (const j of nb[i]) { sx += E[3 * j]; sy += E[3 * j + 1]; sz += E[3 * j + 2]; } const m = nb[i].size;
-        D[3 * i] = 0.5 * E[3 * i] + 0.5 * sx / m; D[3 * i + 1] = 0.5 * E[3 * i + 1] + 0.5 * sy / m; D[3 * i + 2] = 0.5 * E[3 * i + 2] + 0.5 * sz / m; } }
-      if (R.sezioni) { // cordoni (LCL): ogni sezione trasversale si sposta in blocco, il legamento si curva senza appiattirsi
-        const y0 = Math.min(...Array.from({ length: nv }, (_, i) => pos[3 * i + 1])), nb2 = 200, B = Array.from({ length: nb2 }, () => [0, 0, 0]), bin = y => clamp(Math.floor((y - y0) / 0.05), 0, nb2 - 1);
-        for (let i = 0; i < nv; i++) { const b = B[bin(pos[3 * i + 1])], dx = out[3 * i] - pos[3 * i], dy = out[3 * i + 1] - pos[3 * i + 1], dz = out[3 * i + 2] - pos[3 * i + 2]; if (Math.hypot(dx, dy, dz) > Math.hypot(...b)) { b[0] = dx; b[1] = dy; b[2] = dz; } }
-        const S = B.map((_, k) => { const o = [0, 0, 0]; let w = 0; for (let j = -12; j <= 12; j++) { const q = B[k + j]; if (!q) continue; const ww = Math.exp(-(j * j) / 32); w += ww; for (let c = 0; c < 3; c++) o[c] += q[c] * ww; } return o.map(v => v / w); });
-        for (let i = 0; i < nv; i++) { const b = S[bin(pos[3 * i + 1])]; for (let c = 0; c < 3; c++) D[3 * i + c] = b[c]; }
-      }
-      for (let i = 0; i < nv * 3; i++) out[i] = pos[i] + D[i];
-      setPos(name, out); spostati.add(name); tot += src.length;
+      setPos(name, out);
     }
-    log(`${R.tipo} ${R.rif.join('+')}: ${R.sposta.join('+')}, passata ${pass + 1}: ${tot} vertici, spostamento massimo ${(maxd * 10).toFixed(1)} mm`);
-    if (!tot) break;
+    log(`${R.sposta.join('+')} ${R.modo} rispetto a ${R.rif.join('+')}, passata ${pass + 1}: spostamento massimo ${(maxA * 10).toFixed(1)} mm`);
+    if (!any) break;
   }
 }
-for (const [name, o] of orig) { const p = REAL(name).pos; let m = 0, c = 0; for (let i = 0; i < p.length; i += 3) { const d = Math.hypot(p[i] - o[i], p[i + 1] - o[i + 1], p[i + 2] - o[i + 2]); m = Math.max(m, d); if (d > 0.01) c++; }
-  console.log(`  ${name}: ${c} vertici spostati, massimo ${(m * 10).toFixed(1)} mm`); }
+
+for (const R of REGOLE) R.tipo === 'taglia' ? taglia(R) : sezioni(R);
+for (const [name, o] of orig) { const p = REAL(name).pos; if (p.length !== o.length) { console.log(`  ${name}: topologia modificata`); continue; }
+  let m = 0; for (let i = 0; i < p.length; i += 3) m = Math.max(m, Math.hypot(p[i] - o[i], p[i + 1] - o[i + 1], p[i + 2] - o[i + 2]));
+  const pr = {}; for (let i = 0; i < p.length; i += 3) { const k = Math.round(o[i + 1]); pr[k] = Math.max(pr[k] || 0, Math.hypot(p[i] - o[i], p[i + 1] - o[i + 1], p[i + 2] - o[i + 2])); }
+  console.log(`  ${name}: spostamento massimo ${(m * 10).toFixed(1)} mm`, process.argv.includes('--dettaglio') ? Object.entries(pr).filter(([, v]) => v > 0.05).sort((a, b) => b[0] - a[0]).map(([k, v]) => `y${k}:${(v * 10).toFixed(0)}`).join(' ') : ''); }
 rapporto('Dopo:');
+if (process.argv.includes('--dettaglio')) for (const [a0, b0] of CONTROLLO) for (const [a, b] of [[a0, b0], [b0, a0]]) { // livelli dei residui
+  const Db = edt(solid(b), true), A = REAL(a), h = {};
+  for (let i = 0; i < A.nv; i++) { const y = A.pos[3 * i + 1]; if (y > -8 && y < 5 && sample(Db, A.pos[3 * i], y, A.pos[3 * i + 2]) > 0.05) h[Math.round(y)] = (h[Math.round(y)] || 0) + 1; }
+  if (Object.keys(h).length) console.log(`  ${a} in ${b}:`, Object.entries(h).sort((p, q) => q[0] - p[0]).map(([k, v]) => `y${k}:${v}`).join(' '));
+}
 if (PROVA) process.exit(0);
-const buf = Buffer.from(buf0); for (const name of spostati) writePos(buf, name, REAL(name).pos);
-saveFile(buf);
+saveFile(repack());
