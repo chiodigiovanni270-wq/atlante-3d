@@ -8,11 +8,13 @@
    Come funziona: legge dal file del modello le mesh reali già incorporate (ossa, menischi,
    crociati, muscoli, legamenti), le voxelizza (passo 1 mm) e costruisce la capsula come
    involucro delle superfici articolari:
-     1. contenuto articolare = femore, tibia, rotula, cartilagini, menischi, crociati, Hoffa;
+     1. contenuto articolare = femore, tibia, rotula, cartilagini, menischi, crociati e corpo di
+        Hoffa (quello visualizzato: funzione procedurale + deformazione TPS lette dal file);
         involucro = chiusura morfologica (raggio R) dilatata di t → segue l'osso e scavalca
         l'interlinea e la fossa intercondiloidea;
      2. inserzioni: sulla tibia appena sotto la cartilagine (più in basso davanti per Hoffa e
-        dietro per il LCP), sul femore sopra i condili, con il recesso sovrapatellare davanti;
+        dietro per il LCP), sul femore sopra i condili (più in basso posterolateralmente, sotto
+        l'origine del gastrocnemio laterale), con il recesso sovrapatellare davanti;
         verso l'inserzione lo spessore si annulla e la capsula si fonde con l'osso;
      3. la capsula resta profonda alle strutture extracapsulari (LCL, legamento anterolaterale,
         tratto ileotibiale, LCM, retinacoli, MPFL, vasti, capi del gastrocnemio, semimembranoso,
@@ -126,10 +128,29 @@ function sample(F, x, y, z) { // trilineare sui centri dei voxel
   return l(l(l(F[b], F[b + 1], u), l(F[b + NX], F[b + NX + 1], u), v), l(l(F[b + NXY], F[b + NXY + 1], u), l(F[b + NXY + NX], F[b + NXY + NX + 1], u), v), w);
 }
 
+// corpo di Hoffa come appare nel modello: funzione procedurale hoffa() deformata con la TPS (bptps),
+// entrambe lette dal file, campionate e voxelizzate
+function hoffaVisualizzato() {
+  const src = name => { const a = html.indexOf('function ' + name + '('); let d = 0, i = html.indexOf('{', a);
+    for (; i < html.length; i++) { if (html[i] === '{') d++; else if (html[i] === '}' && --d === 0) break; } return html.slice(a, i + 1); };
+  const hoffa = new Function('clamp', src('sEll') + src('smin') + src('hoffa') + '; return hoffa;')(clamp);
+  const T = JSON.parse(html.match(/<script id="bptps" type="application\/json">(.*?)<\/script>/s)[1]);
+  const tps = (x, y, z) => { const { P: Q, W, A: Af } = T; const o = [0, 1, 2].map(k => Af[0][k] + Af[1][k] * x + Af[2][k] * y + Af[3][k] * z);
+    for (let i = 0; i < Q.length; i++) { const d = Math.hypot(x - Q[i][0], y - Q[i][1], z - Q[i][2]); for (let k = 0; k < 3; k++) o[k] += W[i][k] * d; } return o; };
+  const M = new Uint8Array(N), s = 0.04;
+  for (let x = -2; x <= 2; x += s) for (let y = -3.2; y <= 0.5; y += s) for (let z = 0.9; z <= 3.0; z += s) {
+    if (hoffa(x, y, z) >= 0) continue; const [a, b, c] = tps(x, y, z);
+    const i = Math.floor((a - O[0]) / H), j = Math.floor((b - O[1]) / H), k = Math.floor((c - O[2]) / H);
+    if (i >= 0 && j >= 0 && k >= 0 && i < NX && j < NY && k < NZ) M[vi(i, j, k)] = 1;
+  }
+  return M;
+}
+
 /* ============ 1–3. Campo implicito ============ */
 const BONES = new Uint8Array(N); for (const n of ['femore', 'tibia', 'rotula']) or(BONES, solid(n));
 const CORE = BONES.slice();
-for (const n of ['menmed', 'menlat', 'lca', 'lcp', 'menfem', 'trasv', 'hoffa']) or(CORE, solid(n));
+for (const n of ['menmed', 'menlat', 'lca', 'lcp', 'menfem', 'trasv']) or(CORE, solid(n));
+or(CORE, hoffaVisualizzato());
 for (const n of ['cartfem', 'carttib', 'cartrot']) or(CORE, solid(n, true)); // mesh aperte
 // extracapsulari: muscoli spessi (la capsula può passarvi dentro, vicino all'osso) e strutture sottili
 const NB = new Uint8Array(N), SH = new Uint8Array(N);
@@ -139,8 +160,10 @@ log('voxel');
 const Dc = edt(CORE);
 const A = new Uint8Array(N); for (let i = 0; i < N; i++) A[i] = Dc[i] <= P.R ? 1 : 0;
 const E = edt(A, true), Dn = edt(NB), Ds = edt(SH);
-const yT = (x, z) => { const wAnt = sstep(0.8, 2.0, z), wPost = 1 - sstep(-2.6, -1.6, z), wC = 1 - sstep(0.4, 1.6, Math.abs(x - 0.2)); return -2.35 - 0.45 * wAnt - 0.8 * wPost * wC; };
-const yF = (x, z) => { const wAnt = sstep(0.6, 2.2, z), wPost = 1 - sstep(-2.4, -1.2, z), g = Math.exp(-Math.pow((x + 1.1) / 1.9, 2)); return 2.7 + 0.5 * wPost + wAnt * (0.6 + P.sp * g); };
+const yT = (x, z) => { const wAnt = sstep(0.8, 2.0, z) * (1 - sstep(1.2, 2.2, Math.abs(x + 0.9))), wPost = 1 - sstep(-2.6, -1.6, z), wC = 1 - sstep(0.4, 1.6, Math.abs(x - 0.2)); return -2.35 - 0.45 * wAnt - 0.8 * wPost * wC; }; // davanti più in basso solo dietro al tendine rotuleo
+const yF = (x, z) => { const wAnt = sstep(0.6, 2.2, z), wPost = 1 - sstep(-2.4, -1.2, z), g = Math.exp(-Math.pow((x + 1.1) / 1.9, 2));
+  const wPL = sstep(-2.6, -3.3, x) * Math.exp(-Math.pow((z + 2.0) / 0.9, 2)); // posterolaterale: sotto l'origine del gastrocnemio laterale
+  return 2.7 + 0.5 * wPost + wAnt * (0.6 + P.sp * g) - 0.9 * wPL; };
 const taper = (x, y, z) => sstep(yT(x, z), yT(x, z) + 0.5, y) * (1 - sstep(yF(x, z) - 0.7, yF(x, z), y));
 const F = new Float32Array(N);
 for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
@@ -301,6 +324,8 @@ log('mesh:', nv, 'vertici,', I.length / 3, 'triangoli');
 const perc = (names, test) => names.map(n => { const { pos, nv } = REAL(n); let c = 0; for (let i = 0; i < nv; i++) if (test(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2])) c++; return `${n} ${(100 * c / nv).toFixed(1)}%`; }).join(' · ');
 console.log('Inglobati (atteso 0):', perc(['lcl', 'all', 'itb', 'lcm', 'vint', 'vmed', 'vlat', 'glat', 'gmed', 'semim', 'plant', 'bicbrev', 'biclong', 'tenquad', 'tenrot'], (x, y, z) => f(x, y, z) < 0 && sample(Dc, x, y, z) > 0.2));
 console.log('Coperti (atteso ~100):', perc(['menmed', 'menlat', 'lca', 'lcp', 'menfem', 'trasv'], (x, y, z) => f(x, y, z) < 0.02));
+{ const Hf = hoffaVisualizzato(); let n = 0, c = 0; for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) if (Hf[vi(i, j, k)]) { n++; if (f(O[0] + (i + 0.5) * H, O[1] + (j + 0.5) * H, O[2] + (k + 0.5) * H) < 0.02) c++; }
+  console.log('Hoffa coperto:', (100 * c / n).toFixed(1) + '%'); }
 if (PROVA) process.exit(0);
 
 /* ============ Scrittura nel file del modello ============ */
