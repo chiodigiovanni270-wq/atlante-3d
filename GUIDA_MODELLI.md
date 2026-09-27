@@ -29,6 +29,7 @@ Ricavata da `ginocchio-3d.html` e `polso-dito-3d.html`. Un nuovo modello deve av
 - Geometrie reali (BodyParts3D) codificate in base64 dentro `<script id="bpdat" type="text/plain">`, con indice in `<script id="bpman" type="application/json">` (`min`, `max`, `meshes:[{n, nv, ni, p, t?, d?, i16, i}]`). Richiamate con `REAL('<nome>')`. Più sezioni → `bpdat2`/`bpman2`.
 - Strutture non presenti in BodyParts3D (legamenti, tendini, pulegge, borse, ecc.): modellate proceduralmente e adattate all'anatomia reale.
 - Capsula del ginocchio: generata da `strumenti/capsula-ginocchio.mjs` a partire dalle mesh reali (involucro delle superfici articolari, profondo alle strutture extracapsulari) e salvata come mesh `capsula` in `bpdat`. Per modificarla si cambiano i parametri nello script e lo si rilancia.
+- Rapporti tra legamenti collaterali e muscoli del ginocchio: `strumenti/stratifica-ginocchio.mjs` elimina le compenetrazioni secondo la letteratura (zampa d'oca superficiale al LCM, braccio anteriore del semimembranoso profondo, bicipite posteriore al LCL). Dopo averlo usato va rilanciato anche `capsula-ginocchio.mjs`. Funzioni comuni in `strumenti/lib-modello.mjs`.
 
 ## Contenuti obbligatori
 - Riga `.credit`: "Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate." (adattare l'elenco a ciò che viene effettivamente da BodyParts3D).
