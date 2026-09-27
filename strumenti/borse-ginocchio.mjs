@@ -30,7 +30,7 @@ const K = 18, J = 64; // anelli e raggi della griglia polare
 // v: asse lungo (proiettato sul piano della borsa); a, b: semiassi lungo u e v; T: spessore massimo; m: esponente del contorno
 const BORSE = [
   { nome: 'bsovra', profondo: ['femore'], superficiale: ['vint', 'tenquad', 'rotula'], c: [-0.85, 5.6, 2.6], n: [0, 0, 1], v: [0, 1, 0], a: 2.1, b: 2.6, T: 0.3, m: 2.6, dy: 0.25, quadrica: true },
-  { nome: 'bprep', profondo: ['rotula', 'tenrot'], superficiale: ['cute'], c: [-0.75, 1.45, 5.0], n: [0, 0.12, 1], v: [0, 1, 0], a: 1.5, b: 1.55, T: 0.15, m: 2.2, quadrica: true },
+  { nome: 'bprep', profondo: ['rotula', 'tenrot'], superficiale: ['cute'], c: [-0.75, 1.3, 5.0], n: [0, 0.12, 1], v: [0, 1, 0], a: 1.15, b: 1.2, T: 0.13, m: 2.2, quadrica: true },
   { nome: 'binfsup', profondo: ['tibia', 'tenrot'], superficiale: ['cute'], c: [-0.85, -4.55, 3.4], n: [0, 0.1, 1], v: [0, 1, 0], a: 0.95, b: 0.8, T: 0.16, m: 2.2, liscia: 40, quadrica: true },
   { nome: 'binfprof', profondo: ['tibia'], superficiale: ['tenrot'], c: [-0.85, -3.55, 2.8], n: [0, 0.15, 1], v: [0, 1, 0], a: 0.95, b: 0.65, T: 0.5, m: 2.4, riempi: true, liscia: 25 },
   { nome: 'bans', profondo: ['tibia', 'lcm'], superficiale: ['sart', 'grac', 'semit'], c: [2.7, -5.0, 1.2], n: 'auto', v: [-0.35, -0.8, 0.45], a: 1.05, b: 1.75, T: 0.22, m: 2.2, quadrica: true },
