@@ -1,10 +1,11 @@
 /* Funzioni comuni agli strumenti che modificano le mesh incorporate in modelli/ginocchio-3d.html:
    lettura/scrittura di bpdat/bpman, voxelizzazione, trasformata di distanza, campionamento. */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const FILE = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'modelli', 'ginocchio-3d.html');
+export const FILE = process.env.MODELLO ? resolve(process.env.MODELLO) : resolve(dirname(fileURLToPath(import.meta.url)), '..', 'modelli', 'ginocchio-3d.html'); // MODELLO=<file> per lavorare su una copia
 export const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
 export const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const T0 = Date.now();
@@ -16,10 +17,17 @@ let html = M.html;
 const reMan = /(<script id="bpman" type="application\/json">)(.*?)(<\/script>)/s;
 const reDat = /(<script id="bpdat" type="text\/plain">)(.*?)(<\/script>)/s;
 export const reManRe = reMan, reDatRe = reDat;
-export const man = JSON.parse(html.match(reMan)[2]);
-export const buf0 = Buffer.from(html.match(reDat)[2].trim(), 'base64');
-const buf = buf0;
-const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
+export let man = JSON.parse(html.match(reMan)[2]);
+export let buf0 = Buffer.from(html.match(reDat)[2].trim(), 'base64');
+let ab = buf0.buffer.slice(buf0.byteOffset, buf0.byteOffset + buf0.length);
+// mesh di partenza lette da una revisione git del modello (il resto della pagina resta quello attuale):
+// così uno strumento riparte sempre dalle stesse mesh e si può rilanciare
+export function meshDaRevisione(rev) {
+  const h = execFileSync('git', ['show', `${rev}:modelli/ginocchio-3d.html`], { cwd: resolve(dirname(fileURLToPath(import.meta.url)), '..'), maxBuffer: 1 << 30 }).toString('utf8');
+  man = JSON.parse(h.match(reMan)[2]); buf0 = Buffer.from(h.match(reDat)[2].trim(), 'base64');
+  ab = buf0.buffer.slice(buf0.byteOffset, buf0.byteOffset + buf0.length); override.clear(); topo.clear();
+  return h;
+}
 // posizioni correnti (modificabili con setPos prima della voxelizzazione)
 const override = new Map();
 export function setPos(name, pos) { override.set(name, pos); const t = topo.get(name); if (t) t.pos = pos; }
@@ -43,7 +51,9 @@ export function REAL(name) {
 }
 
 /* ============ Voxel ============ */
-export const O = [-6.5, -10, -6], H = 0.1, NX = 130, NY = 195, NZ = 128, NXY = NX * NY, N = NXY * NZ;
+export let O = [-6.5, -10, -6], H = 0.1, NX = 130, NY = 195, NZ = 128, NXY = NX * NY, N = NXY * NZ;
+// griglia diversa (per strumenti che lavorano su un'altra regione): va impostata prima di ogni voxelizzazione
+export function setGriglia(o, h, nx, ny, nz) { O = o; H = h; NX = nx; NY = ny; NZ = nz; NXY = NX * NY; N = NXY * NZ; }
 export const vi = (i, j, k) => i + NX * j + NXY * k;
 export const or = (A, B) => { for (let i = 0; i < N; i++) A[i] |= B[i]; return A; };
 // solido: riempimento per parità lungo z (mesh chiuse) + superficie campionata
