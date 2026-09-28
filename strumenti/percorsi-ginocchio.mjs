@@ -283,11 +283,11 @@ const PERCORSI = [
   // peroniera: nasce dalla tibiale posteriore e scende lungo il perone con una curva dolce
   { id: 'aper', attacca: 'atpost', guida: [[-1.2, -9.3, -2.5], [-1.8, -10.1, -2.1], [-2.4, -11, -1.9], [-2.7, -12, -1.85], [-2.77, -13, -1.87]] },
   // grande safena: sottocutanea, dietro il condilo mediale e superficiale alla zampa d'oca
-  { id: 'vgs', modo: () => 'sup', ignora: ['nsaf', 'ninfra'], liscio: 2,
+  { id: 'vgs', modo: () => 'sup', ignora: ['nsaf', 'ninfra'], liscio: 6, guidaPesi: y => y < 4 && y > -4 ? 4 : 1,
     guida: [[5.9, 9, 0.0], [5.85, 7, 0.15], [5.8, 5, 0.1], [5.8, 3, -0.1], [5.75, 1, -0.35], [5.45, -1, -0.65], [4.7, -3, -0.75]] },
   // nervo safeno: nel canale degli adduttori e poi profondo al sartorio; esce tra il margine posteriore del sartorio e
-  // il gracile (non dietro il gracile) e scende sottocutaneo con la grande safena
-  { id: 'nsaf', fissoInizio: true, liscio: 6, accompagna: 'vgs', vicino: y => y < 1.5, modo: y => y > 3.6 ? 'prof' : y > 2 ? null : 'sup', prof: 0.25, ignora: ['adisc'],
+  // il gracile (non dietro il gracile) e scende sottocutaneo con la grande safena, sempre dietro di essa (non la incrocia)
+  { id: 'nsaf', fissoInizio: true, liscio: 6, accompagna: 'vgs', lato: { off: [-0.05, 0, -0.47], y: [-10, 2.8], w: 30 }, vicino: y => y < 1.5, modo: y => y > 3.6 ? 'prof' : y > 2 ? null : 'sup', prof: 0.25, ignora: ['adisc'],
     guida: [[3.36, 9.47, 0.24], [3.6, 8.5, 0.55], [3.95, 7.3, 0.8], [4.35, 6, 0.75], [4.75, 4.8, 0.5], [5.1, 3.8, 0.35], [5.4, 3.0, 0.2], [5.6, 2.2, 0.05], [5.55, 1.2, -0.15], [5.3, -0.5, -0.4], [4.95, -1.8, -0.55]] },
   { id: 'ninfra', attacca: 'nsaf', modo: () => 'sup' },
 ];
@@ -396,7 +396,10 @@ function instrada(P) {
     const [x, y, z] = p; let v = 0; const md = P.modo ? P.modo(y) : null, e = sample(F.E, x, y, z);
     if (md === 'sup') { const s = sample(F.K, x, y, z); v += 30 * Math.max(0, e - (r + 0.06)) ** 2 + 60 * Math.max(0, r + 0.02 - e) ** 2 + 60 * Math.max(0, r + 0.05 - s) ** 2; }
     else if (md === 'prof') v += 30 * Math.max(0, P.prof + e) ** 2;
-    if (comp && vicino(y)) { let dv = Infinity; const b0 = Math.floor(y / 0.5); for (let b = b0 - 2; b <= b0 + 2; b++) for (const q of compB.get(b) || []) dv = Math.min(dv, Math.hypot(x - q[0], y - q[1], z - q[2])); if (dv < Infinity) v += 10 * Math.max(0, dv - (r + rc + 0.2)) ** 2; }
+    if (P.lato && y > P.lato.y[0] && y < P.lato.y[1]) { // lato fisso rispetto al tubo accompagnato (niente incroci)
+      let bq = null, bd = Infinity; const b0 = Math.floor(y / 0.5); for (let b = b0 - 1; b <= b0 + 1; b++) for (const q of compB.get(b) || []) { const d = Math.abs(q[1] - y); if (d < bd) { bd = d; bq = q; } }
+      if (bq) { const w = sstep(P.lato.y[0], P.lato.y[0] + 1, y) * (1 - sstep(P.lato.y[1] - 1, P.lato.y[1], y)); v += P.lato.w * w * ((x - bq[0] - P.lato.off[0]) ** 2 + (z - bq[2] - P.lato.off[2]) ** 2); } }
+    if (comp && vicino(y)) { let dv = Infinity; const b0 = Math.floor(y / 0.5); for (let b = b0 - 2; b <= b0 + 2; b++) for (const q of compB.get(b) || []) dv = Math.min(dv, Math.hypot(x - q[0], y - q[1], z - q[2])); if (dv < Infinity) v += 10 * Math.max(0, dv - (r + rc + 0.2)) ** 2 + 400 * Math.max(0, r + rc + 0.05 - dv) ** 2; }
     return v;
   };
   const costo = (k, c) => { const p = punto(k, c), o2 = (C[c][0] ** 2 + C[c][1] ** 2) * HC * HC; return F.pen(...p) + 0.3 * (P.guidaPesi ? P.guidaPesi(p[1]) : 1) * o2 + extra(p); };
