@@ -3,6 +3,7 @@
    Uso (dalla cartella del progetto):
      node strumenti/stratifica-ginocchio.mjs [--prova]
      node strumenti/capsula-ginocchio.mjs        (dopo: la capsula dipende dalle strutture vicine)
+     node strumenti/cute-ginocchio.mjs           (sottocute sopra i tendini spostati)
      node strumenti/borse-ginocchio.mjs          (borse sierose tra i piani)
      node strumenti/percorsi-ginocchio.mjs       (infine: vasi e nervi girano attorno alle strutture)
 

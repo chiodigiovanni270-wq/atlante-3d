@@ -1,7 +1,7 @@
 /* Borse sierose del ginocchio: sacche lisce e lenticolari modellate sulle superfici reali tra cui sono interposte
    (sostituiscono le mesh "bsovra", "bprep", "binfprof", "binfsup", "bans", "bgsm" di modelli/ginocchio-3d.html).
 
-   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs e capsula-ginocchio.mjs, prima di percorsi-ginocchio.mjs):
+   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs, capsula-ginocchio.mjs e cute-ginocchio.mjs, prima di percorsi-ginocchio.mjs):
      node strumenti/borse-ginocchio.mjs [--prova]
    Con --prova stampa solo le verifiche, senza modificare il file.
 
