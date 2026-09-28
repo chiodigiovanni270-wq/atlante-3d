@@ -673,7 +673,7 @@ function makeMat(s){
     case 'mus':m=shaderize(new THREE.MeshPhysicalMaterial({color:W,vertexColors:true,roughness:.46,clearcoat:.35,clearcoatRoughness:.4,envMapIntensity:.5,sheen:new THREE.Color(0.25,0.08,0.06)}),{fiber:.05,fresnel:.55});break;
     case 'art':case 'ven':m=new THREE.MeshPhysicalMaterial({color:col,vertexColors:true,roughness:.3,clearcoat:.7,clearcoatRoughness:.2,envMapIntensity:.6});break;
     case 'ner':m=new THREE.MeshStandardMaterial({color:col,vertexColors:true,roughness:.42,map:FIB.map,normalMap:FIB.normal,normalScale:new THREE.Vector2(.5,.5),envMapIntensity:.5});break;
-    case 'bor':m=new THREE.MeshPhysicalMaterial({color:col,vertexColors:true,roughness:.15,clearcoat:.8,transparent:true,opacity:.85,envMapIntensity:.8});fresnel(m,.4);break;
+    case 'bor':m=new THREE.MeshPhysicalMaterial({color:col,vertexColors:true,roughness:.15,clearcoat:.8,transparent:true,opacity:.75,envMapIntensity:.8});fresnel(m,.4);break;
     case 'adi':m=fresnel(new THREE.MeshPhysicalMaterial({color:col,vertexColors:true,roughness:.35,clearcoat:.6,clearcoatRoughness:.3,envMapIntensity:.6}),.55);break;
     case 'caps':m=new THREE.MeshStandardMaterial({color:col,vertexColors:true,roughness:.3,transparent:true,opacity:.55,depthWrite:false,envMapIntensity:.9});fresnel(m,.85);break;
     case 'cute':m=new THREE.MeshStandardMaterial({color:col,vertexColors:true,roughness:.6,transparent:true,opacity:.3,depthWrite:false});fresnel(m,.55);break;
