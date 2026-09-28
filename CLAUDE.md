@@ -27,6 +27,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 
 ## Requisiti di contenuto
 - Ogni pagina riporta un disclaimer breve: "Materiale didattico. Non destinato a uso clinico o diagnostico."
+  Nei modelli sta nella riga dei crediti del pannello strutture e nel pannello "i" (`assets/nav.js`), non nella barra in alto.
 - Al momento i modelli sono due, ma ne verranno aggiunti altri nel tempo: la struttura del sito deve permettere di aggiungere un nuovo modello in modo semplice e ripetibile, senza riorganizzare tutto.
 
 ## Aggiungere un modello

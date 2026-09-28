@@ -1,4 +1,4 @@
-/* Header comune dei modelli: link alla home, disclaimer, pannello con crediti.
+/* Header comune dei modelli: link alla home e pannello "i" con avvertenza e crediti.
    Da includere subito dopo <body>:  <script src="../assets/nav.js"></script>
    Non tocca la logica del modello: aggiunge solo elementi sopra il canvas e
    sposta la barra .top del modello sotto l'header.
@@ -16,29 +16,27 @@
   var WARN = '#ecc85a';   /* giallo dei nervi nei modelli: solo per l'avvertenza */
 
   var css =
+    /* barra in vetro: semitrasparente con sfocatura del modello sottostante */
     '.an-bar{position:fixed;top:0;left:0;right:0;z-index:20;box-sizing:border-box;height:' + BAR + ';' +
-      'padding:env(safe-area-inset-top,0px) max(4px,env(safe-area-inset-right,0px)) 0 max(4px,env(safe-area-inset-left,0px));' +
-      'display:flex;align-items:center;gap:8px;background:rgba(13,17,22,.9);border-bottom:1px solid rgba(50,64,80,.7);' +
+      'padding:env(safe-area-inset-top,0px) max(6px,env(safe-area-inset-right,0px)) 0 max(6px,env(safe-area-inset-left,0px));' +
+      'display:flex;align-items:center;justify-content:space-between;gap:8px;' +
+      'background:linear-gradient(180deg,rgba(13,17,22,.7),rgba(13,17,22,.45));border-bottom:1px solid rgba(255,255,255,.08);' +
+      '-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);' +
       'color:var(--ink,#e5eaef);font:500 13px/1.2 ' + SANS + '}' +
-    '.an-home{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 10px 0 2px;border-radius:10px;' +
+    '.an-home{flex:none;display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:0 10px 0 0;border-radius:999px;' +
       'color:var(--ink,#e5eaef);font:600 15px/1 ' + SANS + ';letter-spacing:-.01em;text-decoration:none;white-space:nowrap}' +
-    '.an-home svg{flex:none;margin-right:-4px;color:var(--muted,#93a1ae);transition:transform .15s,color .15s}' +
+    /* pulsanti tondi in vetro: freccia indietro e "i" */
+    '.an-ico,.an-info span{flex:none;width:32px;height:32px;box-sizing:border-box;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+      'border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);' +
+      'transition:background-color .15s,border-color .15s,color .15s,transform .15s}' +
+    '.an-ico{color:var(--muted,#93a1ae)}' +
     '.an-home img{display:block;flex:none}' +
     '.an-home b{font-weight:600;color:var(--accent,#72b4d0)}' +
-    '.an-home:hover svg{color:var(--accent,#72b4d0);transform:translateX(-2px)}' +
-    '.an-disc{flex:1;min-width:0;margin:0;display:flex;justify-content:flex-end}' +
-    '.an-pill{min-width:0;display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border:1px solid var(--line,#324050);' +
-      'border-radius:999px;background:rgba(30,38,47,.6);color:var(--muted,#93a1ae);font-size:12px;font-weight:500}' +
-    '.an-pill i{flex:none;width:6px;height:6px;border-radius:50%;background:' + WARN + '}' +
-    '.an-pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.an-short{display:none}' +
-    '@media (max-width:640px){.an-long{display:none}.an-short{display:inline}}' +
-    '@media (max-width:340px){.an-disc{display:none}.an-bar{justify-content:space-between}}' +
+    '.an-home:hover .an-ico{color:var(--accent,#72b4d0);border-color:rgba(114,180,208,.5);transform:translateX(-2px)}' +
     '.an-info{flex:none;width:44px;height:44px;border:0;background:transparent;padding:0;cursor:pointer;' +
       'display:flex;align-items:center;justify-content:center}' +
-    '.an-info span{width:32px;height:32px;box-sizing:border-box;border-radius:50%;border:1px solid var(--line,#324050);background:rgba(30,38,47,.6);' +
-      'display:flex;align-items:center;justify-content:center;color:var(--accent,#72b4d0);font:600 15px/1 ' + SANS + ';transition:background-color .15s,border-color .15s}' +
-    '.an-info:hover span{border-color:rgba(114,180,208,.5)}' +
+    '.an-info span{color:var(--accent,#72b4d0);font:600 15px/1 ' + SANS + '}' +
+    '.an-info:hover span{border-color:rgba(114,180,208,.5);background:rgba(255,255,255,.1)}' +
     '.an-info[aria-expanded="true"] span{background:var(--accent,#72b4d0);border-color:var(--accent,#72b4d0);color:var(--bg-lo,#0d1116)}' +
     '.an-home:focus-visible,.an-info:focus-visible,.an-panel a:focus-visible,.an-close:focus-visible{outline:2px solid var(--accent,#72b4d0);outline-offset:2px}' +
     '.an-panel:focus{outline:none}' +
@@ -94,11 +92,8 @@
   var bar = document.createElement('header');
   bar.className = 'an-bar';
   bar.innerHTML =
-    '<a class="an-home" href="' + HOME + '">' + CHEVRON +
+    '<a class="an-home" href="' + HOME + '" aria-label="Torna all’indice di Atlante 3D"><span class="an-ico">' + CHEVRON + '</span>' +
       '<img src="../assets/favicon.svg" width="24" height="24" alt="">Atlante <b>3D</b></a>' +
-    '<p class="an-disc"><span class="an-pill"><i aria-hidden="true"></i>' +
-      '<span class="an-long">Materiale didattico · non destinato a uso clinico o diagnostico</span>' +
-      '<span class="an-short">Uso didattico</span></span></p>' +
     '<button type="button" class="an-info" aria-expanded="false" aria-controls="an-panel" aria-label="Informazioni e crediti">' +
       '<span aria-hidden="true">i</span></button>';
 

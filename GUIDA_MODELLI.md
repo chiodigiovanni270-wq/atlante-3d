@@ -13,6 +13,7 @@ Ricavata da `ginocchio-3d.html` e `polso-dito-3d.html`. Un nuovo modello deve av
 - Palette scura (quella usata dal sito): `--bg:#161c23; --bg-hi:#2a333d; --bg-lo:#0d1116; --panel:#1e262f; --ink:#e5eaef; --muted:#93a1ae; --line:#324050; --accent:#72b4d0`.
 - Mantenere anche la variante chiara e i selettori `prefers-color-scheme` / `:root[data-theme="dark"]` come negli esistenti (il sito forza comunque lo scuro).
 - Sfondo del body: gradiente radiale `var(--bg-hi) → var(--bg) → var(--bg-lo)`; renderer con `setClearColor(0x000000,0)` (trasparente).
+- Stile vetro ("liquid glass"): barra `.views`, selettore `.sect`, `#card` e `#sheet` semitrasparenti con `backdrop-filter` (sfocatura e saturazione), bordo chiaro sottile e riflesso in alto; chip e pulsanti con riempimenti trasparenti, senza `backdrop-filter` annidati. È il blocco CSS `/* ===== Vetro … */` in fondo allo `<style>`, identico nei modelli: copiarlo da lì.
 
 ## Layout dell'interfaccia (vincolante per la barra del sito)
 - Canvas `#c` a tutto schermo (`position:fixed; inset:0`). Resize e picking basati su `innerWidth/innerHeight`.
@@ -36,7 +37,7 @@ Ricavata da `ginocchio-3d.html` e `polso-dito-3d.html`. Un nuovo modello deve av
 - Sezioni di taglio del ginocchio: tutte le strutture finiscono sullo stesso piano della cute (y = ±20,1 cm). `strumenti/estremi-ginocchio.mjs` porta sul piano i vertici delle mesh che lo superano e verifica che i tubi vi terminino; si lancia per ultimo (le mesh BodyParts3D rigenerate dagli altri strumenti finiscono a ±20,2–20,3). Ordine completo: stratifica → capsula → cute → borse → percorsi → estremi.
 
 ## Contenuti obbligatori
-- Riga `.credit`: "Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate." (adattare l'elenco a ciò che viene effettivamente da BodyParts3D).
+- Riga `.credit`: inizia con "<b>Materiale didattico.</b> Non destinato a uso clinico o diagnostico." e un a capo, poi i crediti: "Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate." (adattare l'elenco a ciò che viene effettivamente da BodyParts3D).
 - Viste standard coerenti con il distretto (es. Ant/Post/Lat/Med; per il polso Volare/Dorsale/Radiale/Ulnare).
 - Più distretti nello stesso file = sezioni separate con selettore e ancora nell'URL (es. `#dito`).
 

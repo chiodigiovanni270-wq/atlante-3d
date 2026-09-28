@@ -120,6 +120,48 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   #card .info{flex:1 1 auto;min-height:0;max-height:none;margin-bottom:8px}
 }
 @media (prefers-reduced-motion:reduce){#sheet,.sheet-tab,.sheet-tab .car{transition:none}}
+/* ===== Vetro (stile "liquid glass"): barra viste, selettore sezione, card e pannello strutture =====
+   Identico in tutti i modelli. Superfici semitrasparenti con sfocatura dello sfondo, bordo chiaro sottile
+   e riflesso in alto. Gli elementi interni usano solo riempimenti trasparenti (niente backdrop-filter annidati). */
+:root{--glass:rgba(248,249,250,.62);--glass-card:rgba(248,249,250,.8);--glass-bd:rgba(255,255,255,.7);--glass-fill:rgba(20,35,50,.05);--glass-fill-hi:rgba(20,35,50,.1);--glass-sep:rgba(20,35,50,.1);
+  --glass-hl:inset 0 1px 0 rgba(255,255,255,.8);--glass-blur:blur(20px) saturate(170%)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--glass:rgba(30,38,47,.55);--glass-card:rgba(30,38,47,.74);--glass-bd:rgba(255,255,255,.13);--glass-fill:rgba(255,255,255,.06);--glass-fill-hi:rgba(255,255,255,.12);--glass-sep:rgba(255,255,255,.08);
+    --glass-hl:inset 0 1px 0 rgba(255,255,255,.12)}
+}
+:root[data-theme="dark"]{--glass:rgba(30,38,47,.55);--glass-card:rgba(30,38,47,.74);--glass-bd:rgba(255,255,255,.13);--glass-fill:rgba(255,255,255,.06);--glass-fill-hi:rgba(255,255,255,.12);--glass-sep:rgba(255,255,255,.08);
+  --glass-hl:inset 0 1px 0 rgba(255,255,255,.12)}
+.views,.sect,#card,#sheet{background:var(--glass);border:1px solid var(--glass-bd);box-shadow:var(--glass-hl),var(--shadow);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+.views,.sect{border-radius:999px;padding:3px}
+.views button,.sect button{border-radius:999px;padding:6px 10px;transition:background-color .15s,color .15s}
+.views button:not([aria-pressed="true"]):hover,.sect button:not([aria-selected="true"]):hover{background:var(--glass-fill-hi)}
+.views .flip{border-left:1px solid var(--glass-sep);border-radius:0 999px 999px 0;padding:6px 11px 6px 9px}
+.views .flip:hover{background:transparent}
+#card{background:var(--glass-card);border-left:4px solid var(--c,#999);border-radius:16px}
+#sheet{border-width:1px 0 0;border-radius:20px 20px 0 0}
+/* computer: con l'elenco aperto il pannello non sale sotto la barra del sito e le viste; si accorcia l'elenco */
+@media (min-width:900px){#sheet{border-width:1px;border-radius:20px;display:flex;flex-direction:column;
+    max-height:calc(100vh - env(safe-area-inset-top,0px) - 136px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - 136px)}
+  .sheet-body{display:flex;flex-direction:column;min-height:0}
+  .sheet-body>*{flex:none}.sheet-body>#list{flex:0 1 auto;min-height:0}}
+.chip,.btn{background:var(--glass-fill);border-color:var(--glass-bd);transition:background-color .15s}
+.chip:hover,.btn:not(.primary):not([aria-pressed="true"]):hover{background:var(--glass-fill-hi)}
+.btn{border-radius:999px;padding:6px 12px}
+.btn.primary,.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.item{border-bottom-color:var(--glass-sep)}
+#card .info p+.oif{border-top-color:var(--glass-sep)}
+.regs button{background:var(--glass-fill)}
+.regs button[aria-pressed="true"]{background:var(--accent)}
+@media (max-width:600px),(orientation:landscape) and (max-height:500px){
+  /* aperto: pannello e intestazione formano un'unica lastra, un po' più piena perché l'intestazione,
+     figlia del pannello sfocato, in Chrome non può sfocare a sua volta ciò che sta dietro */
+  #sheet{background:var(--glass-card);border-width:0;border-radius:0}
+  .sheet-tab{background:var(--glass-card);border-top:1px solid var(--glass-bd);border-radius:20px 20px 0 0;box-shadow:var(--glass-hl),0 -6px 18px rgba(0,0,0,.25);
+    -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+  #sheet.collapsed .sheet-tab{background:var(--glass);border:1px solid var(--glass-bd);box-shadow:var(--glass-hl),var(--shadow)}
+  #sheet.collapsed{box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 </style>
 </head>
 <body>
@@ -167,7 +209,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <button class="toggle-list" id="bList" aria-expanded="false">Elenco</button>
   </div>
   <div id="list"></div>
-  <p class="credit">Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate.</p>
+  <p class="credit"><b>Materiale didattico.</b> Non destinato a uso clinico o diagnostico.<br>Ossa, muscoli e cute: BodyParts3D, © The Database Center for Life Science, licenza CC BY-SA 2.1 JP (Mitsuhashi N et al., Nucleic Acids Res 2009). Le altre strutture sono modellate e adattate.</p>
   </div>
 </section>
 
