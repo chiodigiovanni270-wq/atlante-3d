@@ -47,7 +47,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #card[hidden]{display:none}
 #card h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 28px 2px 0;line-height:1.2}
 #card .cat{color:var(--muted);font-size:12.5px;margin:0 0 6px}
-#card .info{margin:0 0 10px;line-height:1.45;font-size:14px;max-height:28vh;overflow:auto}
+#card .info{margin:0 0 10px;line-height:1.45;font-size:14px;max-height:36vh;overflow:auto}
+#card .info p{margin:0}
+#card .oif{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:5px 10px;margin:0;font-size:13.5px}
+#card .info p+.oif{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+#card .oif dt{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+#card .oif dd{margin:0}
 #card .x{position:absolute;top:8px;right:8px;border:0;background:transparent;font-size:20px;line-height:1;padding:4px 8px;color:var(--muted)}
 .btns{display:flex;gap:6px;flex-wrap:wrap}
 .btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 11px;font-size:13px;font-weight:500}
@@ -148,7 +153,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   <button class="x" aria-label="Chiudi">×</button>
   <h2 id="cName"></h2>
   <p class="cat" id="cCat"></p>
-  <p class="info" id="cInfo"></p>
+  <div class="info" id="cInfo"></div>
   <div class="btns">
     <button class="btn primary" id="cIso">Isola con le ossa</button>
     <button class="btn" id="cHide">Nascondi</button>
@@ -438,85 +443,85 @@ const S=[
  {id:'menlat',cat:'men',name:'Menisco laterale',info:'Quasi circolare, più mobile; non aderisce al LCL. Posterolateralmente lo iato popliteo lo separa dalla capsula: non confonderlo con una lesione.',
   b:()=>[REAL('menlat')]},
  // LEGAMENTI
- {id:'lca',nw:1,cat:'leg',name:'Legamento crociato anteriore (LCA)',info:'Dalla faccia mediale del condilo femorale laterale all\u2019area intercondiloidea anteriore della tibia. Limita traslazione anteriore e rotazione interna della tibia. Fasci antero-mediale e postero-laterale.',
+ {id:'lca',nw:1,cat:'leg',name:'Legamento crociato anteriore (LCA)',info:'Fasci antero-mediale e postero-laterale.',o:'Faccia mediale del condilo femorale laterale, nella parte posteriore della fossa intercondiloidea.',ins:'Area intercondiloidea anteriore della tibia, davanti e lateralmente alla spina tibiale mediale.',fn:'Limita la traslazione anteriore e la rotazione interna della tibia.',
   b:()=>[REAL('lca')]},
- {id:'lcp',nw:1,cat:'leg',name:'Legamento crociato posteriore (LCP)',info:'Dalla faccia laterale del condilo femorale mediale alla superficie posteriore della tibia, sotto il piatto. Limita la traslazione posteriore; più spesso e robusto del LCA.',
+ {id:'lcp',nw:1,cat:'leg',name:'Legamento crociato posteriore (LCP)',info:'Più spesso e robusto del LCA; fasci antero-laterale e postero-mediale.',o:'Faccia laterale del condilo femorale mediale, nella parte anteriore della fossa intercondiloidea.',ins:'Area intercondiloidea posteriore della tibia, sulla superficie posteriore circa 1 cm sotto il piatto.',fn:'Limita la traslazione posteriore della tibia.',
   b:()=>[REAL('lcp')]},
- {id:'menfem',nw:1,cat:'leg',name:'Legamenti menisco-femorali',info:'Humphrey (anteriore al LCP) e Wrisberg (posteriore): dal corno posteriore del menisco laterale al condilo femorale mediale. Possibile pseudo-lesione del corno posteriore in RM.',
+ {id:'menfem',nw:1,cat:'leg',name:'Legamenti menisco-femorali',info:'Humphrey anteriore al LCP, Wrisberg posteriore. Possibile pseudo-lesione del corno posteriore in RM.',o:'Corno posteriore del menisco laterale.',ins:'Faccia laterale del condilo femorale mediale.',fn:'Stabilizzano il corno posteriore del menisco laterale; stabilizzatori secondari della traslazione posteriore della tibia.',
   b:()=>[REAL('menfem')]},
- {id:'trasv',nw:1,cat:'leg',name:'Legamento trasverso (intermeniscale)',info:'Unisce i corni anteriori dei menischi; in RM può simulare una lesione del corno anteriore del menisco laterale.',
+ {id:'trasv',nw:1,cat:'leg',name:'Legamento trasverso (intermeniscale)',info:'In RM può simulare una lesione del corno anteriore del menisco laterale.',o:'Corno anteriore del menisco mediale.',ins:'Corno anteriore del menisco laterale.',fn:'Collega e stabilizza i corni anteriori dei menischi.',
   b:()=>[REAL('trasv')]},
- {id:'lcm',nw:1,cat:'leg',name:'Legamento collaterale mediale (LCM)',info:'Dall\u2019epicondilo mediale alla metafisi tibiale mediale, profondo alla zampa d\u2019oca. Stabilizzatore in valgo; lo strato profondo è adeso al menisco mediale.',
+ {id:'lcm',nw:1,cat:'leg',name:'Legamento collaterale mediale (LCM)',info:'Profondo alla zampa d\u2019oca; lo strato profondo è adeso al menisco mediale.',o:'Epicondilo mediale del femore.',ins:'Strato superficiale: metafisi tibiale mediale, circa 5–6 cm sotto l\u2019interlinea. Strato profondo: margine tibiale sotto l\u2019interlinea, tramite i legamenti menisco-femorale e menisco-tibiale.',fn:'Stabilizzatore primario contro il valgo; secondario contro la rotazione esterna della tibia.',
   b:()=>[REAL('lcm')]},
- {id:'lcl',nw:1,cat:'leg',name:'Legamento collaterale laterale (LCL)',info:'Dall\u2019epicondilo laterale alla testa del perone, extracapsulare. Stabilizzatore in varo; parte del complesso postero-laterale.',
+ {id:'lcl',nw:1,cat:'leg',name:'Legamento collaterale laterale (LCL)',info:'Extracapsulare; parte del complesso postero-laterale.',o:'Epicondilo laterale del femore.',ins:'Faccia laterale della testa del perone, davanti all\u2019apice.',fn:'Stabilizzatore primario contro il varo; limita la rotazione esterna della tibia.',
   b:()=>[REAL('lcl')]},
- {id:'all',nw:1,cat:'leg',name:'Legamento anterolaterale',info:'Dal femore laterale, in prossimità dell\u2019epicondilo, alla tibia tra tubercolo di Gerdy e testa del perone. Controlla la rotazione interna; associato alla frattura di Segond.',
+ {id:'all',nw:1,cat:'leg',name:'Legamento anterolaterale',info:'Associato alla frattura di Segond.',o:'Femore laterale, in prossimità dell\u2019epicondilo.',ins:'Tibia anterolaterale, tra tubercolo di Gerdy e testa del perone.',fn:'Controlla la rotazione interna della tibia.',
   b:()=>[REAL('all')]},
- {id:'popfib',nw:1,cat:'leg',name:'Legamento popliteo-fibulare',info:'Dalla giunzione muscolo-tendinea del popliteo all\u2019apice della testa del perone; componente chiave del complesso postero-laterale.',
+ {id:'popfib',nw:1,cat:'leg',name:'Legamento popliteo-fibulare',info:'Componente chiave del complesso postero-laterale.',o:'Giunzione muscolo-tendinea del popliteo.',ins:'Apice della testa del perone.',fn:'Limita la rotazione esterna della tibia e il varo.',
   b:()=>[REAL('popfib')]},
- {id:'popobl',nw:1,cat:'leg',name:'Legamento popliteo obliquo',info:'Espansione del semimembranoso che rinforza la capsula posteriore, diretta obliquamente verso il condilo femorale laterale.',
+ {id:'popobl',nw:1,cat:'leg',name:'Legamento popliteo obliquo',info:'Espansione del semimembranoso.',o:'Tendine del semimembranoso, presso l\u2019inserzione tibiale postero-mediale.',ins:'Capsula posteriore, obliquamente verso il condilo femorale laterale.',fn:'Rinforza la capsula posteriore; limita iperestensione e rotazione esterna.',
   b:()=>[REAL('popobl')]},
- {id:'mpfl',nw:1,cat:'leg',name:'Legamento patello-femorale mediale (MPFL)',info:'Dal femore (tra tubercolo adduttorio ed epicondilo mediale) al margine mediale della rotula. Principale stabilizzatore contro la lateralizzazione; frequentemente lesionato nella lussazione di rotula.',
+ {id:'mpfl',nw:1,cat:'leg',name:'Legamento patello-femorale mediale (MPFL)',info:'Frequentemente lesionato nella lussazione di rotula.',o:'Femore, tra tubercolo adduttorio ed epicondilo mediale.',ins:'Margine mediale della rotula (due terzi superiori).',fn:'Principale stabilizzatore passivo contro la lateralizzazione della rotula, soprattutto nei primi gradi di flessione.',
   b:()=>[REAL('mpfl')]},
- {id:'retmed',nw:1,cat:'leg',name:'Retinacolo rotuleo mediale',info:'Espansione fibrosa del vasto mediale e della fascia ai lati di rotula e tendine rotuleo, fino alla tibia.',
+ {id:'retmed',nw:1,cat:'leg',name:'Retinacolo rotuleo mediale',info:'Espansione fibrosa del vasto mediale e della fascia.',o:'Vasto mediale e fascia profonda.',ins:'Margini mediali di rotula e tendine rotuleo, fino alla tibia.',fn:'Stabilizza medialmente la rotula.',
   b:()=>[REAL('retmed')]},
- {id:'retlat',nw:1,cat:'leg',name:'Retinacolo rotuleo laterale',info:'Più robusto del mediale, riceve fibre dal tratto ileotibiale; la sua retrazione favorisce il tilt rotuleo laterale.',
+ {id:'retlat',nw:1,cat:'leg',name:'Retinacolo rotuleo laterale',info:'Più robusto del mediale; la sua retrazione favorisce il tilt rotuleo laterale.',o:'Vasto laterale e tratto ileotibiale.',ins:'Margini laterali di rotula e tendine rotuleo, fino alla tibia.',fn:'Stabilizza lateralmente la rotula.',
   b:()=>[REAL('retlat')]},
  // TENDINI
- {id:'tenrot',nw:1,cat:'ten',name:'Tendine rotuleo',info:'Dall\u2019apice rotuleo alla tuberosità tibiale. Sede di tendinopatia prossimale (jumper\u2019s knee) e, distalmente, di Osgood-Schlatter.',
+ {id:'tenrot',nw:1,cat:'ten',name:'Tendine rotuleo',info:'Dall\u2019apice rotuleo alla tuberosità tibiale. Sede di tendinopatia prossimale (jumper\u2019s knee) e, distalmente, di Osgood-Schlatter.',o:'Apice (polo inferiore) della rotula.',ins:'Tuberosità tibiale.',fn:'Trasmette alla tibia la forza del quadricipite: estensione del ginocchio. Anatomicamente è il legamento rotuleo.',
   b:()=>[REAL('tenrot')]},
- {id:'tenquad',nw:1,cat:'ten',name:'Tendine quadricipitale',info:'Convergenza dei quattro capi del quadricipite sul polo superiore della rotula; aspetto trilaminare in RM ed ecografia.',
+ {id:'tenquad',nw:1,cat:'ten',name:'Tendine quadricipitale',info:'Aspetto trilaminare in RM ed ecografia: retto femorale superficiale, vasti mediale e laterale intermedi, vasto intermedio profondo.',o:'Convergenza dei quattro capi del quadricipite (retto femorale, vasti mediale, laterale e intermedio) nel terzo distale della coscia.',ins:'Base (polo superiore) della rotula; le fibre più superficiali passano davanti alla rotula e proseguono nel tendine rotuleo.',fn:'Trasmette alla rotula la forza del quadricipite: estensione del ginocchio.',
   b:()=>[REAL('tenquad')]},
- {id:'itb',cat:'ten',name:'Tratto ileotibiale',info:'Ispessimento della fascia lata che si inserisce sul tubercolo di Gerdy. Sindrome da attrito sul condilo femorale laterale nei corridori.',
+ {id:'itb',cat:'ten',name:'Tratto ileotibiale',info:'Sindrome da attrito sul condilo femorale laterale nei corridori.',o:'Ispessimento laterale della fascia lata; riceve prossimalmente il tensore della fascia lata e le fibre superficiali del grande gluteo.',ins:'Tubercolo di Gerdy (tibia anterolaterale); fibre al retinacolo rotuleo laterale e, prossimalmente, al setto intermuscolare laterale (fibre di Kaplan).',fn:'Stabilizzatore laterale e anterolaterale del ginocchio; trasmette la tensione di tensore della fascia lata e grande gluteo.',
   b:()=>[REAL('itb')]},
  // MUSCOLI
- {id:'retto',cat:'mus',name:'Retto femorale',info:'Origine: spina iliaca anteriore inferiore e tetto acetabolare. Biarticolare: flette l\u2019anca ed estende il ginocchio. Strato superficiale del tendine quadricipitale.',
+ {id:'retto',cat:'mus',name:'Retto femorale',info:'Muscolo biarticolare; forma lo strato superficiale del tendine quadricipitale.',o:'Capo diretto: spina iliaca anteriore inferiore. Capo riflesso: solco sopra-acetabolare (tetto acetabolare) e capsula dell\u2019anca.',ins:'Base della rotula con il tendine quadricipitale e, tramite il tendine rotuleo, tuberosità tibiale.',fn:'Estende il ginocchio; flette l\u2019anca.',
   b:()=>[REAL('retto')]},
- {id:'vint',cat:'mus',name:'Vasto intermedio',info:'Profondo al retto femorale, origina dalla superficie antero-laterale della diafisi femorale; strato profondo del tendine quadricipitale.',
+ {id:'vint',cat:'mus',name:'Vasto intermedio',info:'Profondo al retto femorale; forma lo strato profondo del tendine quadricipitale.',o:'Faccia anteriore e laterale dei due terzi superiori della diafisi femorale.',ins:'Base della rotula con lo strato profondo del tendine quadricipitale e, tramite il tendine rotuleo, tuberosità tibiale.',fn:'Estende il ginocchio. Le fibre più profonde (muscolo articolare del ginocchio) sollevano il recesso sovrapatellare durante l\u2019estensione.',
   b:()=>[REAL('vint')]},
- {id:'vmed',cat:'mus',name:'Vasto mediale',info:'Le fibre oblique distali (VMO) si inseriscono sul margine mediale della rotula e ne contrastano la lateralizzazione.',
+ {id:'vmed',cat:'mus',name:'Vasto mediale',info:'Le fibre oblique distali (VMO) si inseriscono sul margine mediale della rotula e ne contrastano la lateralizzazione.',o:'Parte inferiore della linea intertrocanterica, linea spirale, labbro mediale della linea aspra, linea sopracondiloidea mediale, setto intermuscolare mediale e tendine dell\u2019adduttore magno (fibre oblique, VMO).',ins:'Margine mediale della rotula e tendine quadricipitale; retinacolo rotuleo mediale; tramite il tendine rotuleo, tuberosità tibiale.',fn:'Estende il ginocchio; il VMO è il principale stabilizzatore dinamico mediale della rotula.',
   b:()=>[REAL('vmed')]},
- {id:'vlat',cat:'mus',name:'Vasto laterale',info:'Il capo più voluminoso del quadricipite; si inserisce sulla rotula e sul retinacolo laterale.',
+ {id:'vlat',cat:'mus',name:'Vasto laterale',info:'Il capo più voluminoso del quadricipite.',o:'Parte superiore della linea intertrocanterica, margini anteriore e inferiore del grande trocantere, tuberosità glutea, labbro laterale della linea aspra, setto intermuscolare laterale.',ins:'Margine laterale della base della rotula e tendine quadricipitale; retinacolo rotuleo laterale; tramite il tendine rotuleo, tuberosità tibiale.',fn:'Estende il ginocchio.',
   b:()=>[REAL('vlat')]},
- {id:'sart',cat:'mus',name:'Sartorio',info:'Con gracile e semitendinoso forma la zampa d\u2019oca (pes anserinus), inserzione comune sulla tibia antero-mediale circa 4 cm sotto l\u2019interlinea: il sartorio ne è la componente più anteriore e superficiale e con la sua espansione copre gli altri due tendini. Origine: spina iliaca anteriore superiore. Flette il ginocchio; flette, abduce e ruota esternamente l\u2019anca.',
+ {id:'sart',cat:'mus',name:'Sartorio',info:'Con gracile e semitendinoso forma la zampa d\u2019oca (pes anserinus), inserzione comune sulla tibia antero-mediale circa 4 cm sotto l\u2019interlinea: il sartorio ne è la componente più anteriore e superficiale e con la sua espansione copre gli altri due tendini.',o:'Spina iliaca anteriore superiore.',ins:'Faccia mediale della tibia prossimale (zampa d\u2019oca), anteriormente a gracile e semitendinoso; espansione alla fascia crurale.',fn:'Flette il ginocchio e, a ginocchio flesso, ruota internamente la tibia; flette, abduce e ruota esternamente l\u2019anca.',
   b:()=>[REAL('sart')]},
- {id:'grac',cat:'mus',name:'Gracile',info:'Con sartorio e semitendinoso forma la zampa d\u2019oca (pes anserinus), sulla tibia antero-mediale: il gracile vi si inserisce tra sartorio (davanti) e semitendinoso (sotto). Origine: branca ischio-pubica. Prelevato con il semitendinoso per la ricostruzione del LCA.',
+ {id:'grac',cat:'mus',name:'Gracile',info:'Con sartorio e semitendinoso forma la zampa d\u2019oca (pes anserinus), sulla tibia antero-mediale: il gracile vi si inserisce tra sartorio (davanti) e semitendinoso (sotto). Prelevato con il semitendinoso per la ricostruzione del LCA.',o:'Corpo del pube (metà inferiore, presso la sinfisi) e branca ischio-pubica.',ins:'Faccia mediale della tibia prossimale (zampa d\u2019oca), tra sartorio e semitendinoso.',fn:'Adduce l\u2019anca; flette il ginocchio e ruota internamente la tibia.',
   b:()=>[REAL('grac')]},
- {id:'semit',cat:'mus',name:'Semitendinoso',info:'Con sartorio e gracile forma la zampa d\u2019oca (pes anserinus), sulla tibia antero-mediale; il suo lungo tendine distale ne è la componente più inferiore. Origine: tuberosità ischiatica. Flette il ginocchio e ruota internamente la tibia.',
+ {id:'semit',cat:'mus',name:'Semitendinoso',info:'Con sartorio e gracile forma la zampa d\u2019oca (pes anserinus), sulla tibia antero-mediale; il suo lungo tendine distale ne è la componente più inferiore.',o:'Tuberosità ischiatica, con tendine comune al capo lungo del bicipite femorale.',ins:'Faccia mediale della tibia prossimale (zampa d\u2019oca), posteriormente e distalmente al gracile.',fn:'Flette il ginocchio e ruota internamente la tibia; estende l\u2019anca.',
   b:()=>[REAL('semit')]},
- {id:'semim',cat:'mus',name:'Semimembranoso',info:'Origine: tuberosità ischiatica. Inserzione principale postero-mediale sul condilo tibiale mediale, con espansioni capsulari (legamento popliteo obliquo).',
+ {id:'semim',cat:'mus',name:'Semimembranoso',info:'',o:'Tuberosità ischiatica (impronta supero-laterale).',ins:'Principale: faccia postero-mediale del condilo tibiale mediale. Espansioni: braccio anteriore sotto il LCM, legamento popliteo obliquo, capsula postero-mediale e fascia del popliteo.',fn:'Flette il ginocchio e ruota internamente la tibia; estende l\u2019anca; tende la capsula posteriore e stabilizza l\u2019angolo postero-mediale.',
   b:()=>[REAL('semim')]},
- {id:'biclong',cat:'mus',name:'Bicipite femorale, capo lungo',info:'Origine: tuberosità ischiatica. Tendine comune con il capo breve sulla testa del perone, insieme al LCL. Flette il ginocchio e ruota esternamente la tibia.',
+ {id:'biclong',cat:'mus',name:'Bicipite femorale, capo lungo',info:'Tendine comune con il capo breve sulla testa del perone, insieme al LCL.',o:'Tuberosità ischiatica, con tendine comune al semitendinoso; legamento sacrotuberoso.',ins:'Testa del perone (faccia laterale, davanti all\u2019apice), con tendine comune al capo breve; espansioni al condilo tibiale laterale e alla fascia crurale.',fn:'Flette il ginocchio e ruota esternamente la tibia; estende l\u2019anca.',
   b:()=>[REAL('biclong')]},
- {id:'bicbrev',cat:'mus',name:'Bicipite femorale, capo breve',info:'Origine: linea aspra del femore. Si unisce al capo lungo nel tendine distale.',
+ {id:'bicbrev',cat:'mus',name:'Bicipite femorale, capo breve',info:'',o:'Labbro laterale della linea aspra, linea sopracondiloidea laterale e setto intermuscolare laterale.',ins:'Testa del perone, con tendine comune al capo lungo.',fn:'Flette il ginocchio e ruota esternamente la tibia (monoarticolare: non agisce sull\u2019anca).',
   b:()=>[REAL('bicbrev')]},
- {id:'addmag',cat:'mus',name:'Adduttore magno (porzione distale)',info:'Il tendine della porzione ischiocondiloidea si inserisce sul tubercolo adduttorio; l\u2019iato degli adduttori è attraversato dai vasi femorali, che diventano poplitei.',
+ {id:'addmag',cat:'mus',name:'Adduttore magno (porzione distale)',info:'L\u2019iato degli adduttori è attraversato dai vasi femorali, che diventano poplitei.',o:'Porzione adduttoria: branca ischio-pubica. Porzione ischiocondiloidea: tuberosità ischiatica.',ins:'Porzione adduttoria: tuberosità glutea, linea aspra e linea sopracondiloidea mediale. Porzione ischiocondiloidea: tubercolo adduttorio del femore, con tendine distale.',fn:'Adduce l\u2019anca; la porzione adduttoria la flette, la porzione ischiocondiloidea la estende.',
   b:()=>[REAL('addmag')]},
- {id:'gmed',cat:'mus',name:'Gastrocnemio, capo mediale',info:'Origine dalla faccia posteriore del condilo femorale mediale; confluisce nel tendine d\u2019Achille. Tra il suo tendine e il semimembranoso la borsa della cisti di Baker. Sede tipica di strappo (tennis leg).',
+ {id:'gmed',cat:'mus',name:'Gastrocnemio, capo mediale',info:'Tra il suo tendine e il semimembranoso la borsa della cisti di Baker. Sede tipica di strappo (tennis leg).',o:'Faccia posteriore del femore sopra il condilo mediale e capsula articolare adiacente.',ins:'Faccia posteriore del calcagno, tramite il tendine calcaneale (d\u2019Achille) comune con capo laterale e soleo.',fn:'Flessione plantare della caviglia; flette il ginocchio (biarticolare).',
   b:()=>[REAL('gmed')]},
- {id:'glat',cat:'mus',name:'Gastrocnemio, capo laterale',info:'Origine dalla faccia posteriore del condilo femorale laterale; può contenere la fabella (sesamoide).',
+ {id:'glat',cat:'mus',name:'Gastrocnemio, capo laterale',info:'Nel tendine d\u2019origine può essere presente la fabella (sesamoide).',o:'Faccia laterale del condilo femorale laterale, parte inferiore della linea sopracondiloidea laterale e capsula articolare adiacente.',ins:'Faccia posteriore del calcagno, tramite il tendine calcaneale (d\u2019Achille).',fn:'Flessione plantare della caviglia; flette il ginocchio (biarticolare).',
   b:()=>[REAL('glat')]},
- {id:'plant',cat:'mus',name:'Plantare',info:'Piccolo ventre sopra il capo laterale del gastrocnemio; lungo tendine sottile tra gastrocnemio e soleo fino al calcagno.',
+ {id:'plant',cat:'mus',name:'Plantare',info:'Piccolo ventre sopra il capo laterale del gastrocnemio; lungo tendine sottile tra gastrocnemio e soleo fino al calcagno.',o:'Parte inferiore della linea sopracondiloidea laterale del femore e legamento popliteo obliquo.',ins:'Faccia posteriore del calcagno, medialmente al tendine d\u2019Achille o fuso con esso.',fn:'Azione trascurabile: coadiuva il gastrocnemio nella flessione plantare della caviglia e nella flessione del ginocchio.',
   b:()=>[REAL('plant')]},
- {id:'pop',cat:'mus',name:'Popliteo',info:'Origine dal condilo femorale laterale con tendine intra-articolare che passa nello iato popliteo; inserzione sulla faccia posteriore della tibia. Ruota internamente la tibia e "sblocca" il ginocchio esteso.',
+ {id:'pop',cat:'mus',name:'Popliteo',info:'Il tendine, intracapsulare ma extrasinoviale, passa nello iato popliteo del menisco laterale.',o:'Faccia laterale del condilo femorale laterale (sotto l\u2019epicondilo), con tendine intra-articolare; fibre accessorie dal menisco laterale e dalla testa del perone (legamento popliteo-fibulare).',ins:'Faccia posteriore della tibia, sopra la linea del soleo.',fn:'All\u2019inizio della flessione ruota internamente la tibia (o esternamente il femore a piede fisso), \u201csbloccando\u201d il ginocchio esteso; stabilizzatore postero-laterale.',
   b:()=>[REAL('pop')]},
- {id:'sol',cat:'mus',name:'Soleo',info:'Origine da testa/collo del perone e linea del soleo tibiale, unite dall\u2019arcata tendinea del soleo, sotto cui passano i vasi poplitei e il nervo tibiale; profondo al gastrocnemio, forma con esso il tricipite surale.',
+ {id:'sol',cat:'mus',name:'Soleo',info:'L\u2019arcata tendinea del soleo, tra perone e tibia, è attraversata dai vasi poplitei e dal nervo tibiale; profondo al gastrocnemio, forma con esso il tricipite surale.',o:'Faccia posteriore della testa e del terzo prossimale del perone, linea del soleo e terzo medio del margine mediale della tibia, arcata tendinea del soleo.',ins:'Faccia posteriore del calcagno, tramite il tendine calcaneale (d\u2019Achille).',fn:'Flessione plantare della caviglia (monoarticolare); stabilizza la gamba nella stazione eretta e agisce da pompa muscolare venosa.',
   b:()=>[REAL('sol')]},
- {id:'tibant',cat:'mus',name:'Tibiale anteriore',info:'Loggia anteriore, dalla faccia laterale della tibia; dorsiflessione e inversione del piede.',
+ {id:'tibant',cat:'mus',name:'Tibiale anteriore',info:'Loggia anteriore.',o:'Condilo laterale e metà superiore della faccia laterale della tibia, membrana interossea e fascia crurale.',ins:'Faccia mediale e plantare del cuneiforme mediale e base del I metatarso.',fn:'Dorsiflessione della caviglia e inversione del piede; sostiene l\u2019arco longitudinale mediale.',
   b:()=>[REAL('tibant')]},
- {id:'extdig',cat:'mus',name:'Estensore lungo delle dita',info:'Loggia anteriore, dal condilo tibiale laterale e dalla faccia anteriore del perone.',
+ {id:'extdig',cat:'mus',name:'Estensore lungo delle dita',info:'Loggia anteriore.',o:'Condilo laterale della tibia, tre quarti superiori della faccia mediale (anteriore) del perone, membrana interossea.',ins:'Con quattro tendini sull\u2019aponeurosi dorsale delle dita II–V, fino alle falangi media e distale.',fn:'Estende le dita II–V; coadiuva la dorsiflessione della caviglia e l\u2019eversione del piede.',
   b:()=>[REAL('extdig')]},
- {id:'perlong',cat:'mus',name:'Peroneo lungo',info:'Loggia laterale, dalla testa e dalla diafisi del perone; il nervo peroneo comune passa tra il muscolo e il collo del perone.',
+ {id:'perlong',cat:'mus',name:'Peroneo lungo',info:'Loggia laterale; il nervo peroneo comune passa tra il muscolo e il collo del perone.',o:'Testa e due terzi superiori della faccia laterale del perone; setti intermuscolari.',ins:'Base del I metatarso e cuneiforme mediale (lato plantare), dopo aver attraversato la pianta nel solco del cuboide.',fn:'Everte il piede e flette plantarmente la caviglia; sostiene l\u2019arco trasverso e longitudinale.',
   b:()=>[REAL('perlong')]},
- {id:'tibpost',cat:'mus',name:'Tibiale posteriore',info:'Il muscolo più profondo della loggia posteriore: origina dalla membrana interossea e dalle facce contigue di tibia e perone; il tendine passa dietro al malleolo mediale. Principale stabilizzatore dinamico dell\u2019arco plantare mediale (inversione e flessione plantare).',
+ {id:'tibpost',cat:'mus',name:'Tibiale posteriore',info:'Il muscolo più profondo della loggia posteriore; il tendine passa dietro al malleolo mediale.',o:'Membrana interossea e facce posteriori contigue di tibia (sotto la linea del soleo) e perone.',ins:'Tuberosità del navicolare e cuneiforme mediale; espansioni plantari agli altri cuneiformi, al cuboide e alle basi del II–IV metatarso.',fn:'Inversione del piede e flessione plantare; principale stabilizzatore dinamico dell\u2019arco plantare mediale.',
   b:()=>[REAL('tibpost')]},
- {id:'fdl',cat:'mus',name:'Flessore lungo delle dita',info:'Loggia posteriore profonda: dalla faccia posteriore della tibia sotto la linea del soleo; decorre medialmente al tibiale posteriore e passa dietro al malleolo mediale. Flette le ultime quattro dita.',
+ {id:'fdl',cat:'mus',name:'Flessore lungo delle dita',info:'Loggia posteriore profonda: decorre medialmente al tibiale posteriore e passa dietro al malleolo mediale.',o:'Faccia posteriore della tibia, medialmente, sotto la linea del soleo.',ins:'Basi delle falangi distali delle dita II–V.',fn:'Flette le ultime quattro dita; coadiuva flessione plantare e inversione del piede.',
   b:()=>[REAL('fdl')]},
- {id:'fhl',cat:'mus',name:'Flessore lungo dell\'alluce',info:'Loggia posteriore profonda: dai due terzi inferiori della faccia posteriore del perone, lateralmente; il tendine incrocia poi verso il malleolo mediale. Flette l\u2019alluce.',
+ {id:'fhl',cat:'mus',name:'Flessore lungo dell\'alluce',info:'Loggia posteriore profonda, lateralmente; il tendine incrocia poi verso il malleolo mediale.',o:'Due terzi inferiori della faccia posteriore del perone e membrana interossea.',ins:'Base della falange distale dell\u2019alluce (faccia plantare).',fn:'Flette l\u2019alluce; coadiuva la flessione plantare e sostiene l\u2019arco mediale nella spinta del passo.',
   b:()=>[REAL('fhl')]},
- {id:'ehl',cat:'mus',name:'Estensore lungo dell\'alluce',info:'Loggia anteriore: dal terzo medio della faccia mediale del perone e dalla membrana interossea, tra tibiale anteriore ed estensore lungo delle dita, che prossimalmente lo coprono. Estende l\u2019alluce.',
+ {id:'ehl',cat:'mus',name:'Estensore lungo dell\'alluce',info:'Loggia anteriore: tra tibiale anteriore ed estensore lungo delle dita, che prossimalmente lo coprono.',o:'Terzo medio della faccia mediale del perone e membrana interossea.',ins:'Base della falange distale dell\u2019alluce (faccia dorsale).',fn:'Estende l\u2019alluce; coadiuva la dorsiflessione della caviglia.',
   b:()=>[REAL('ehl')]},
- {id:'perbrev',cat:'mus',name:'Peroneo breve',info:'Loggia laterale: dai due terzi inferiori della faccia laterale del perone (origine circa 12 cm sotto la testa), profondo al peroneo lungo; si inserisce sulla base del V metatarso. Everte e flette plantarmente il piede. Il modello si ferma a metà gamba: se ne vede solo il tratto prossimale del ventre.',
+ {id:'perbrev',cat:'mus',name:'Peroneo breve',info:'Loggia laterale, profondo al peroneo lungo; l\u2019origine inizia circa 12 cm sotto la testa del perone. Il modello si ferma a metà gamba: se ne vede solo il tratto prossimale del ventre.',o:'Due terzi inferiori della faccia laterale del perone; setti intermuscolari.',ins:'Tuberosità della base del V metatarso.',fn:'Everte il piede e flette plantarmente la caviglia.',
   b:()=>[REAL('perbrev')]},
  // ARTERIE
  {id:'apop',nw:1,cat:'art',name:'Arteria femorale superficiale → poplitea',info:'Nel canale degli adduttori, sotto il sartorio, tra vasto mediale e adduttore magno; diventa poplitea all\u2019iato degli adduttori. Nella fossa poplitea è la struttura più profonda del fascio neurovascolare, sulla faccia poplitea del femore e sulla capsula, posteriore al legamento popliteo obliquo (non lo attraversa); si divide al margine inferiore del popliteo, sotto l\u2019arcata del soleo.',
@@ -865,7 +870,16 @@ function select(id){
   selected=id?byId[id]:null;if(!selected){card.hidden=true;return;}
   if(selected.mat)selected.mat.emissive.setHex(0x3b3a14);
   const c=catById[selected.cat];card.style.setProperty('--c',c.color);
-  document.getElementById('cName').textContent=selected.name;document.getElementById('cCat').textContent=c.name;document.getElementById('cInfo').textContent=selected.info;card.hidden=false;
+  document.getElementById('cName').textContent=selected.name;document.getElementById('cCat').textContent=c.name;fillInfo(selected);card.hidden=false;
+}
+/* nota didattica + origine, inserzione e funzione (campi o, ins, fn), se presenti */
+function fillInfo(s){
+  const el=document.getElementById('cInfo');el.textContent='';el.scrollTop=0;
+  if(s.info){const p=document.createElement('p');p.textContent=s.info;el.appendChild(p);}
+  const R=[['Origine',s.o],['Inserzione',s.ins],['Funzione',s.fn]].filter(r=>r[1]);if(!R.length)return;
+  const dl=document.createElement('dl');dl.className='oif';
+  R.forEach(([k,v])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;dl.append(dt,dd);});
+  el.appendChild(dl);
 }
 card.querySelector('.x').addEventListener('click',()=>select(null));
 document.getElementById('cHide').addEventListener('click',()=>{if(!selected)return;const s=selected;select(null);setVis(s,false);sync();});
@@ -918,7 +932,7 @@ compact.addEventListener('change',e=>{if(e.matches)setSheet(false);});
 
 /* ============ Etichette sul modello ============ */
 const LBL=[
- {k:'pes',t:"Zampa d'oca",ids:['sart','grac','semit'],m:'low',sel:'sart',nm:"Zampa d'oca (pes anserinus)",info:"Sartorio, gracile e semitendinoso formano insieme la zampa d'oca: inserzione comune dei tre tendini sulla faccia anteromediale della tibia prossimale, circa 4 cm sotto l'interlinea, medialmente alla tuberosità tibiale. Si trova superficialmente all'inserzione tibiale del LCM; tra tendini e LCM/tibia è interposta la borsa anserina."},
+ {k:'pes',t:"Zampa d'oca",ids:['sart','grac','semit'],m:'low',sel:'sart',nm:"Zampa d'oca (pes anserinus)",info:"Sartorio, gracile e semitendinoso formano insieme la zampa d'oca: inserzione comune dei tre tendini sulla faccia anteromediale della tibia prossimale, circa 4 cm sotto l'interlinea, medialmente alla tuberosità tibiale. Si trova superficialmente all'inserzione tibiale del LCM; tra tendini e LCM/tibia è interposta la borsa anserina.",o:"Sartorio: spina iliaca anteriore superiore. Gracile: corpo del pube e branca ischio-pubica. Semitendinoso: tuberosità ischiatica.",ins:"Faccia antero-mediale della tibia prossimale, dall'avanti all'indietro: sartorio, gracile, semitendinoso.",fn:"Flessione del ginocchio e rotazione interna della tibia; stabilizzazione dinamica mediale contro valgo e rotazione esterna."},
  {k:'bans',t:'Borsa anserina',ids:['bans'],m:'c'},
  {k:'bgsm',t:'Borsa GS',ids:['bgsm'],m:'c'},
  {k:'itb',t:'Bandelletta ileotibiale (Gerdy)',ids:['itb'],m:'low'},
@@ -949,7 +963,7 @@ function pickLabel(L){
   select(L.sel||L.ids[0]);
   extraHL.forEach(m=>{if(!selected||m!==selected.mat)m.emissive.setHex(0);});extraHL=[];
   L.ids.forEach(id=>{const s=byId[id];if(s&&s.mat&&s!==selected){s.mat.emissive.setHex(0x3b3a14);extraHL.push(s.mat);}});
-  if(L.nm){document.getElementById('cName').textContent=L.nm;document.getElementById('cInfo').textContent=L.info;}
+  if(L.nm){document.getElementById('cName').textContent=L.nm;fillInfo(L);}
 }
 const _v=new THREE.Vector3();
 function updateLabels(){
