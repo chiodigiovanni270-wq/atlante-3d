@@ -31,11 +31,13 @@
    punto si muove solo nel proprio piano trasversale) toglie le pieghe; i rami escono tangenti al tronco quando nascono
    nella sua direzione; alle biforcazioni e all'origine dei rami il calibro si raccorda (r0/r1 di tube()). Le mesh dei muscoli
    (BodyParts3D) non hanno gli spazi in cui scorrono vasi e nervi (arcata del soleo, grasso della fossa, iato degli adduttori,
-   tunnel fibulare): dopo il calcolo vengono scavati solchi lisci lungo i tubi (SCAVA). */
+   tunnel fibulare): dopo il calcolo vengono scavati solchi lisci lungo i tubi (SCAVA). Per i nervi peronieri, sottili, la mesh
+   del peroneo lungo e dell'estensore lungo delle dita viene prima raffinata lungo il nervo (lati ≤ 1 mm, bisezione conforme)
+   e poi incisa con un canale aperto verso la superficie più vicina, raccordato e levigato (nessuna piega). */
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { M, REAL, setPos, repack, saveFile, setGriglia, solid, edt, sample, clamp, sstep, log, reManRe, reDatRe } from './lib-modello.mjs';
+import { M, REAL, setPos, setMesh, repack, saveFile, setGriglia, solid, edt, sample, clamp, sstep, log, reManRe, reDatRe } from './lib-modello.mjs';
 import * as G from './lib-modello.mjs'; // griglia corrente (O, H, NX, NY, NZ, N cambiano con setGriglia)
 
 const PROVA = process.argv.includes('--prova');
@@ -55,18 +57,100 @@ const SCAVA = [
   { m: 'glat', tubi: ['apop', 'vpop', 'ntib'], y: [-7, 3.5], dir: [-1, 0, -0.3], max: 0.8 },
   { m: 'plant', tubi: ['apop', 'vpop', 'ntib'], y: [-7, 3.5], dir: [-1, 0, -0.3], max: 0.8 },
   { m: 'tibpost', tubi: ['atant'], y: [-10.5, -6.5], dir: [0, -1, 0] },                                  // sopra la membrana interossea
-  { m: 'perlong', tubi: ['nper', 'nperS', 'nperP'], y: [-8.5, -4.6], da: [-3.7, -1.4], max: 0.7 },        // tunnel fibulare (tetto staccato dal collo del perone)
-  { m: 'extdig', tubi: ['nperP'], y: [-10, -5] },
+  // nervi peronieri: mesh raffinata lungo il nervo (lati ≤ 1 mm) e canale scavato. Tunnel fibulare e passaggio profondo
+  // all'estensore lungo delle dita: la faccia profonda del muscolo (verso il perone) si solleva sopra il nervo; più in
+  // basso il peroneo superficiale scorre nel setto tra peronieri ed estensore lungo delle dita (solco radiale)
+  { m: 'perlong', fine: [{ tubi: ['nper', 'nperS', 'nperP'], y: [-21, -3.8] }] },
+  { m: 'extdig', fine: [{ tubi: ['nperP', 'nperS'], y: [-21, -5.2] }] },
   { m: 'addmag', tubi: ['apop', 'vpop'], y: [10.5, 15] },                                               // iato degli adduttori
 ];
-function meshOriginale(nome) {
-  const m0 = JSON.parse(H0.match(reManRe)[2]), b0 = Buffer.from(H0.match(reDatRe)[2].trim(), 'base64'), e = m0.meshes.findLast(x => x.n === nome);
-  const q = new Uint16Array(b0.buffer.slice(b0.byteOffset + e.p, b0.byteOffset + e.p + e.nv * 6)), pos = new Float32Array(e.nv * 3);
-  for (let i = 0; i < e.nv * 3; i++) { const k = i % 3; pos[i] = m0.min[k] + q[i] / 65535 * (m0.max[k] - m0.min[k]); } return pos;
+const M0 = JSON.parse(H0.match(reManRe)[2]), B0 = Buffer.from(H0.match(reDatRe)[2].trim(), 'base64');
+const vista = (T, off, n) => new T(B0.buffer.slice(B0.byteOffset + off, B0.byteOffset + off + n * T.BYTES_PER_ELEMENT));
+function meshOriginale(nome) { return meshCompleta(nome).pos; }
+function meshCompleta(nome) { // posizioni, indici, tag (colore muscolo/tendine) e direzioni delle fibre della mesh originale
+  const e = M0.meshes.findLast(x => x.n === nome), q = vista(Uint16Array, e.p, e.nv * 3), pos = new Float32Array(e.nv * 3);
+  for (let i = 0; i < e.nv * 3; i++) { const k = i % 3; pos[i] = M0.min[k] + q[i] / 65535 * (M0.max[k] - M0.min[k]); }
+  return { pos, idx: Array.from(vista(e.i16 ? Uint16Array : Uint32Array, e.i, e.ni)), tag: e.t !== undefined ? Array.from(vista(Uint8Array, e.t, e.nv)) : null,
+    fdir: e.d !== undefined ? Array.from(vista(Int8Array, e.d, e.nv * 3)) : null };
 }
-for (const S of SCAVA) setPos(S.m, meshOriginale(S.m)); // i decorsi si calcolano sulle mesh originali
+for (const S of SCAVA) { if (S.fine) { const m = meshCompleta(S.m); setMesh(S.m, { pos: m.pos, idx: Uint32Array.from(m.idx), tag: m.tag && Uint8Array.from(m.tag), fdir: m.fdir && Int8Array.from(m.fdir) }); }
+  else setPos(S.m, meshOriginale(S.m)); } // i decorsi si calcolano sulle mesh originali
+
+// segmenti dei tubi (ogni 1 mm) con il raggio del canale (raggio del tubo + 0,6 mm)
+const segmenti = tubi => { const segs = []; for (const id of tubi) for (const t of correnti.get(id)) { const P = ricampiona(t.pts, 0.1); for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i], t.r + 0.06]); } return segs; };
+const vicinoSeg = (segs, p) => { let bd = Infinity, bs = null, bq = null; for (const sg of segs) { const [a, b] = sg, ab = sub(b, a), t = clamp(dot(sub(p, a), ab) / (dot(ab, ab) || 1), 0, 1), q = add(a, ab, t), d = len(sub(p, q)); if (d - sg[2] < bd) { bd = d - sg[2]; bs = sg; bq = q; } } return [bd, bs, bq]; };
+// asse dell'osso alla quota y (baricentro della sezione), per la direzione del canale sulla faccia profonda
+const ASSI = new Map();
+const asseOsso = (osso, y) => { const k = osso + Math.round(y * 5); if (!ASSI.has(k)) { const { pos } = REAL(osso); let sx = 0, sz = 0, n = 0; for (let i = 0; i < pos.length; i += 3) if (Math.abs(pos[i + 1] - y) < 0.3) { sx += pos[i]; sz += pos[i + 2]; n++; } ASSI.set(k, n ? [sx / n, sz / n] : null); } return ASSI.get(k); };
+
+// raffinamento conforme per bisezione dei lati (≤ h) vicino ai tubi: il canale del nervo, sottile, diventa rappresentabile
+function raffina(m, parti, h = 0.1, fascia = 0.45) {
+  const P = Array.from(m.pos), I = m.idx, T = m.tag, D = m.fdir, key = (a, b) => a < b ? a + '_' + b : b + '_' + a;
+  const segs = parti.map(pt => [pt, segmenti(pt.tubi)]), vicino = q => segs.some(([pt, sg]) => q[1] > pt.y[0] - 0.5 && q[1] < pt.y[1] + 0.5 && vicinoSeg(sg, q)[0] < fascia);
+  for (let pass = 0; pass < 12; pass++) {
+    const e2t = new Map(); for (let t = 0; t < I.length / 3; t++) for (let r = 0; r < 3; r++) { const k = key(I[3 * t + r], I[3 * t + (r + 1) % 3]); (e2t.get(k) || e2t.set(k, []).get(k)).push(t); }
+    const lunghi = []; for (const [k, ts] of e2t) { const [a, b] = k.split('_').map(Number), A = P.slice(3 * a, 3 * a + 3), B = P.slice(3 * b, 3 * b + 3), L = len(sub(A, B)); if (L > h && vicino(add(A, sub(B, A), 0.5))) lunghi.push([L, a, b]); }
+    if (!lunghi.length) break; lunghi.sort((x, y) => y[0] - x[0]);
+    const toccati = new Set(); let n = 0;
+    for (const [, a, b] of lunghi) { const ts = e2t.get(key(a, b)); if (!ts || ts.some(t => toccati.has(t))) continue; // una bisezione per triangolo per passata
+      const m2 = P.length / 3; for (let k = 0; k < 3; k++) P.push((P[3 * a + k] + P[3 * b + k]) / 2);
+      if (T) T.push(Math.round((T[a] + T[b]) / 2)); if (D) for (let k = 0; k < 3; k++) D.push(Math.round((D[3 * a + k] + D[3 * b + k]) / 2));
+      for (const t of ts) { toccati.add(t); const tri = [I[3 * t], I[3 * t + 1], I[3 * t + 2]], r = tri.findIndex((v, j) => (v === a && tri[(j + 1) % 3] === b) || (v === b && tri[(j + 1) % 3] === a));
+        const u = tri[r], v = tri[(r + 1) % 3], w = tri[(r + 2) % 3]; I[3 * t] = u; I[3 * t + 1] = m2; I[3 * t + 2] = w; I.push(m2, v, w); toccati.add(I.length / 3 - 1); }
+      n++; }
+    if (!n) break;
+  }
+  return { pos: Float32Array.from(P), idx: I, tag: T, fdir: D };
+}
+// canale lungo i tubi, aperto verso la superficie del muscolo più vicina al tubo: e = direzione di uscita (gradiente della
+// distanza con segno dal muscolo, mediato lungo il tubo su ±4 mm); la parete del muscolo dal lato di uscita si sposta
+// oltre il tubo (profilo a coseno rialzato largo raggio + 3,5 mm). Se il tubo è dentro il muscolo si apre un canale verso
+// la faccia più vicina; con 'osso' il canale si apre verso l'osso (tunnel fibulare: il nervo resta coperto dal peroneo
+// lungo); se il tubo sfiora il muscolo, questo si incava sotto di esso.
+function incidi(nome, pos, pt) {
+  const P0 = []; for (const id of pt.tubi) for (const t of correnti.get(id)) { const Q = ricampiona(t.pts, 0.1).filter(q => q[1] > pt.y[0] - 0.6 && q[1] < pt.y[1] + 0.6); if (Q.length > 1) P0.push([Q, t.r + 0.06]); }
+  if (!P0.length) return [0, 0];
+  const all = P0.flatMap(([Q]) => Q), lo = [0, 1, 2].map(k => Math.min(...all.map(q => q[k])) - 1.5), hi = [0, 1, 2].map(k => Math.max(...all.map(q => q[k])) + 1.5), hg = 0.05;
+  setGriglia(lo, hg, Math.ceil((hi[0] - lo[0]) / hg), Math.ceil((hi[1] - lo[1]) / hg), Math.ceil((hi[2] - lo[2]) / hg));
+  const Sm = solid(nome), Do = edt(Sm), Di = edt(Sm, true), f = q => sample(Do, ...q) - sample(Di, ...q);
+  const segs = [];
+  for (const [Q, c] of P0) {
+    const E = Q.map(q => { const e = 0.05, g = [0, 1, 2].map(k => { const a = q.slice(), b = q.slice(); a[k] += e; b[k] -= e; return f(a) - f(b); }); return nrm(g); });
+    const Es = E.map((_, k) => { const m = [0, 0, 0]; for (let j = Math.max(0, k - 4); j <= Math.min(E.length - 1, k + 4); j++) for (let r = 0; r < 3; r++) m[r] += E[j][r]; return nrm(m); });
+    for (let k = 1; k < Q.length; k++) { const t = nrm(sub(Q[k], Q[k - 1])), ax = pt.osso && asseOsso(pt.osso, Q[k][1]);
+      const e = ax ? nrm([ax[0] - Q[k][0], 0, ax[1] - Q[k][2]]) : Es[k], u = nrm(sub(e, t.map(x => x * dot(e, t)))).map(x => -x); segs.push([Q[k - 1], Q[k], c, u]); } // osso: canale aperto verso l'osso
+  }
+  const Dv = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length; i += 3) {
+    const p = [pos[i], pos[i + 1], pos[i + 2]], w = sstep(pt.y[0] - 0.4, pt.y[0] + 0.3, p[1]) * (1 - sstep(pt.y[1] - 0.3, pt.y[1] + 0.4, p[1])); if (w <= 0) continue;
+    let best = 0, dir = null;
+    for (const [a, b, c, u] of segs) { const ab = sub(b, a), t = clamp(dot(sub(p, a), ab) / (dot(ab, ab) || 1), 0, 1), q = add(a, ab, t), v = sub(p, q);
+      const hh = dot(v, u), L = c + 0.35; if (hh < -0.7) continue; const lat = len(sub(v, u.map(x => x * hh))); if (lat >= L) continue;
+      const T = c * (1 + Math.cos(Math.PI * lat / L)) / 2 + 0.02, fz = (T - hh) * sstep(-0.7, -0.45, hh); if (fz > best) { best = fz; dir = u; } }
+    if (dir) for (let k = 0; k < 3; k++) Dv[i + k] = dir[k] * best * w;
+  }
+  return Dv;
+}
+// intorni dei vertici e levigature: spostamenti raccordati sulla mesh, poi Taubin sulla zona incisa (niente pieghe)
+const intorni = (idx, nv) => { const nb = Array.from({ length: nv }, () => new Set()); for (let t = 0; t < idx.length; t += 3) for (let r = 0; r < 3; r++) { const a = idx[t + r], b = idx[t + (r + 1) % 3]; nb[a].add(b); nb[b].add(a); } return nb; };
+function raccorda(Dv, nb, it) { for (let r = 0; r < it; r++) { const O = Dv.slice(); for (let i = 0; i < nb.length; i++) { if (!nb[i].size) continue; const m = [0, 0, 0]; for (const j of nb[i]) for (let k = 0; k < 3; k++) m[k] += O[3 * j + k];
+  for (let k = 0; k < 3; k++) { const a = O[3 * i + k], b = m[k] / nb[i].size; Dv[3 * i + k] = Math.abs(b) > Math.abs(a) ? 0.5 * (a + b) : 0.5 * a + 0.5 * b; } } } }
+function taubin(pos, nb, peso, it) { for (let r = 0; r < 2 * it; r++) { const f = r % 2 ? -0.53 : 0.5, O = pos.slice(); for (let i = 0; i < nb.length; i++) { if (!peso[i] || !nb[i].size) continue; const m = [0, 0, 0]; for (const j of nb[i]) for (let k = 0; k < 3; k++) m[k] += O[3 * j + k];
+  for (let k = 0; k < 3; k++) pos[3 * i + k] = O[3 * i + k] + f * peso[i] * (m[k] / nb[i].size - O[3 * i + k]); } } }
 function scava() {
-  for (const S of SCAVA) {
+  for (const S of SCAVA.filter(S => S.fine)) {
+    const m = raffina(meshCompleta(S.m), S.fine), nv0 = M0.meshes.findLast(x => x.n === S.m).nv, nv = m.pos.length / 3, nb = intorni(m.idx, nv), P0 = m.pos.slice();
+    // tre giri: spostamento (raccordato sulla mesh) e levigatura della zona toccata; l'ultimo giro solo spostamento, così il canale resta libero
+    for (let giro = 0; giro < 4; giro++) for (const pt of S.fine) {
+      const Dv = incidi(S.m, m.pos, pt); if (giro < 3) raccorda(Dv, nb, 6);
+      const peso = new Float32Array(nv); for (let i = 0; i < nv; i++) { const d = Math.hypot(Dv[3 * i], Dv[3 * i + 1], Dv[3 * i + 2]); peso[i] = Math.min(1, d / 0.05); m.pos[3 * i] += Dv[3 * i]; m.pos[3 * i + 1] += Dv[3 * i + 1]; m.pos[3 * i + 2] += Dv[3 * i + 2]; }
+      if (giro < 3) { for (let r = 0; r < 3; r++) { const O = peso.slice(); for (let i = 0; i < nv; i++) for (const j of nb[i]) peso[i] = Math.max(peso[i], 0.7 * O[j]); } taubin(m.pos, nb, peso, 6); }
+    }
+    let mosse = 0, mx = 0; for (let i = 0; i < nv; i++) { const d = Math.hypot(m.pos[3 * i] - P0[3 * i], m.pos[3 * i + 1] - P0[3 * i + 1], m.pos[3 * i + 2] - P0[3 * i + 2]); if (d > 1e-3) { mosse++; mx = Math.max(mx, d); } }
+    setMesh(S.m, { pos: m.pos, idx: Uint32Array.from(m.idx), tag: m.tag && Uint8Array.from(m.tag), fdir: m.fdir && Int8Array.from(m.fdir) });
+    log(`canale in ${S.m}: mesh ${nv0} → ${m.pos.length / 3} vertici, ${mosse} spostati (max ${(mx * 10).toFixed(1)} mm)`);
+  }
+  for (const S of SCAVA.filter(S => !S.fine)) {
     const pos = meshOriginale(S.m), segs = [], F = new Float32Array(pos.length / 3), DIR = new Array(pos.length / 3);
     for (const id of S.tubi) for (const t of correnti.get(id)) { const P = ricampiona(t.pts, 0.1); for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i], t.r + 0.06]); }
     let mosse = 0, mx = 0;
@@ -144,7 +228,8 @@ const pesi = n => OSSA.includes(n) ? 120 : FIBROSE.includes(n) ? 60 : 40;
 // attacca: il tubo nasce dal tronco indicato (nel punto corrispondente a quello originale); attaccaFine: vi termina;
 // accompagna: resta a contatto del tubo indicato (vena satellite dell'arteria, nervo del fascio);
 // modo(y): 'sup' sottocutaneo, 'prof' sotto l'involucro dei muscoli, null libero; tunnel: {struttura: [yMin, yMax]}
-// struttura che il tubo può incidere in quell'intervallo (penalità ridotta): dopo il calcolo la mesh viene scavata
+// struttura che il tubo può incidere in quell'intervallo (penalità ridotta); morbidi: fattore sulla penalità dei muscoli
+// (nervi peronieri: i muscoli vengono poi incisi, l'osso no). Dopo il calcolo la mesh viene scavata
 // lungo il tubo (SCAVA), così il tubo passa in un solco/canale e non attraversa il muscolo; R: raggio di ricerca (cm).
 const FOSSA = y => y < 11 && y > -7;
 const FORTE = y => y < 16 && y > -12 ? 12 : 1; // dal canale degli adduttori all'arcata del soleo il fascio segue la guida (ordine arteria-vena-nervo)
@@ -172,14 +257,15 @@ const PERCORSI = [
       [-1.35, -8, -3.25], [-1.6, -9, -2.95], [-1.85, -10, -2.65], [-2.0, -11, -2.45], [-1.99, -12, -2.47]] },
   // nervo peroneo comune: lungo il margine mediale del bicipite, dietro la testa del perone e attorno al collo;
   // la divisione è profonda al peroneo lungo, sull'osso (tunnel fibulare)
-  { id: 'nper', R: 1.6, attacca: 'nsci', modo: y => y < -5.3 ? 'prof' : null, prof: 0.3, tunnel: { perlong: [-9, 0] },
+  { id: 'nper', R: 1.6, morbidi: 0.4, attacca: 'nsci', modo: y => y < -5.3 ? 'prof' : null, prof: 0.3, tunnel: { perlong: [-9, 0] },
     guida: [[0.2, 11.56, -1.55], [-0.3, 10.5, -1.9], [-0.7, 9.3, -2.25], [-1.2, 8, -2.55], [-1.8, 6.5, -2.8], [-2.4, 5, -3.0], [-2.95, 3.5, -3.15],
       [-3.4, 2, -3.2], [-3.75, 0.5, -3.2], [-4.05, -1, -3.15], [-4.25, -3.0, -3.0], [-4.85, -4.2, -2.6], [-5.2, -5.2, -1.9], [-4.85, -5.9, -1.05]] },
   { id: 'nsurlat', attacca: 'nper', modo: y => y > 1.5 ? null : 'sup' }, // perfora la fascia sopra il capo laterale del gastrocnemio
   // nel setto tra peroneo lungo ed estensore lungo delle dita (i due muscoli poggiano sul perone senza spazio: il nervo
   // segue il solco tra i due, senza attraversarne i ventri)
-  { id: 'nperS', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-8, 0] } },
-  { id: 'nperP', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-8, 0], extdig: [-9.5, -5.5] } },
+  { id: 'nperS', attacca: 'nper', modo: y => y > -12 ? 'prof' : null, prof: 0.35, tunnel: { perlong: [-8, 0] }, guidaPesi: y => y < -8.5 ? 4 : 1,
+    guida: [[-4.0, -9, -0.4], [-4.03, -10.5, -0.3], [-4.04, -12, -0.3], [-4.0, -13.5, -0.5], [-4.02, -15, -0.85], [-4.12, -16.5, -1.1], [-4.15, -18, -1.15], [-4.12, -19.5, -1.1], [-4.08, -20.4, -1.05]] }, // estremità superficiale del setto tra peroneo lungo ed estensore lungo delle dita, staccato dal perone
+  { id: 'nperP', morbidi: 0.4, attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-8, 0], extdig: [-9.5, -5.5] } },
   // nervo cutaneo surale mediale e piccola safena: tra i capi del gastrocnemio, poi sottofasciali sul polpaccio
   { id: 'nsurmed', attacca: 'ntib', modo: y => y < -3 ? 'sup' : null },
   { id: 'vps', attaccaFine: 'vpop', modo: y => y < -3 ? 'sup' : null },
@@ -257,7 +343,7 @@ function campi(P, g, r, R) {
   for (const n of PROFONDE) {
     if (!dentro(n, lo, hi)) continue;
     const S = solid(n); for (let i = 0; i < G.N; i++) U[i] |= S[i];
-    const Do = edt(S), Di = edt(S, true), w = pesi(n), T = tun[n] ? (PenT[n] = new Float32Array(G.N)) : Pen;
+    const Do = edt(S), Di = edt(S, true), w = pesi(n) * (P.morbidi && MUSCOLI.includes(n) ? P.morbidi : 1), T = tun[n] ? (PenT[n] = new Float32Array(G.N)) : Pen;
     for (let i = 0; i < G.N; i++) { const d = Do[i] - Di[i], p = r + MARG - d; if (p > 0) T[i] += w * p * p; if (d < Dmin[i]) Dmin[i] = d; }
   }
   // altri tubi (vasi e nervi), esclusi il tubo stesso, il tronco da cui nasce e i suoi rami
