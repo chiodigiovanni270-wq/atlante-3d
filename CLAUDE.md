@@ -36,10 +36,15 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
    `<meta name="description" content="…">` e `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`;
    subito dopo `<body>` aggiungi `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
 3. Crea l'anteprima con `node strumenti/anteprima.mjs <nome>-3d` (server locale attivo sulla porta 8000):
-   salva `assets/anteprime/<nome>-3d.jpg`, 800×500. Istruzioni e opzioni in testa allo script.
+   salva `assets/anteprime/<nome>-3d.jpg`, 1600×1000. Istruzioni e opzioni in testa allo script.
 4. In `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna distretto, immagine, alt,
    didascalia della vista, link, titolo e descrizione. Numero "Tav." e conteggio dei modelli sono automatici.
 5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
+
+## Anteprime e video della homepage
+- Dopo ogni modifica a un modello rigenerare la sua anteprima (`strumenti/anteprima.mjs`) e, per il ginocchio,
+  il video della prima schermata: `node strumenti/video-home.mjs ginocchio-3d --dist=1.5`
+  (salva `assets/video/ginocchio-3d.mp4` e il poster `.jpg`; richiede ffmpeg). Il video rispetta "riduci movimento".
 
 ## Modo di lavorare
 - Prima di modifiche ampie, proponi un piano e attendi conferma.

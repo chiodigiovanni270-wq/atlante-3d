@@ -8,12 +8,15 @@ Sito statico con modelli anatomici 3D interattivi, a scopo didattico
 ## Struttura
 
 ```
-index.html                 homepage: presentazione, una card per ogni modello, "Come si usa", crediti
+index.html                 homepage: video del modello, presentazione, una card per ogni modello, "Come si usa", crediti
 modelli/<nome>-3d.html     un file autocontenuto per modello (three.js r128 da CDN, dati in base64)
 assets/nav.js              header comune dei modelli: link alla home, disclaimer, pannello "i" con i crediti
 assets/favicon.svg
-assets/anteprime/          immagini 800×500 delle card
+assets/anteprime/          immagini 1600×1000 delle card
+assets/video/              video della prima schermata (MP4) e relativo poster
 strumenti/anteprima.mjs    genera le anteprime (non pubblicato sul sito)
+strumenti/video-home.mjs   genera il video della prima schermata (non pubblicato sul sito)
+strumenti/lib-chrome.mjs   funzioni comuni ai due script (Chrome headless)
 GUIDA_MODELLI.md           guida tecnica ai modelli, non pubblicata sul sito
 .vercelignore              esclude dal deploy strumenti/, CLAUDE.md, README.md e GUIDA_MODELLI.md
 ```
@@ -29,10 +32,11 @@ python3 -m http.server 8000
 
 dalla cartella del progetto, poi apri <http://localhost:8000>.
 Le pagine si aprono anche con il doppio clic, ma il server locale riproduce il comportamento del sito online
-ed è necessario per lo script delle anteprime.
+ed è necessario per gli script delle anteprime e del video.
 
 Cosa controllare dopo una modifica:
-- homepage: card, immagini, link (anche "Polso" / "Dito"), numeri "Tav." e conteggio dei modelli;
+- homepage: video in alto, card, immagini, link (anche "Polso" / "Dito"), numeri "Tav." e conteggio dei modelli,
+  barra in alto che diventa di vetro scorrendo;
 - in ogni modello: header in alto, "‹ Atlante 3D" torna alla home, pannello "i" si apre e si chiude
   (su smartphone dal basso, chiudibile toccando lo sfondo; da 640 px come riquadro sotto la "i"),
   toccando una struttura si apre la scheda giusta;
@@ -54,6 +58,7 @@ Cosa controllare dopo una modifica:
    ```
    Salva `assets/anteprime/<nome>-3d.jpg`. Per regolare l'inquadratura: `--zoom=1.2`, `--dy=-0.05`;
    per fare prove senza sovrascrivere: `--out=/tmp/prova.jpg`. Richiede Node 22+ e Google Chrome.
+   Va rigenerata anche quando si modifica un modello, perché l'anteprima resti aggiornata.
 4. **Card** — in `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna distretto, immagine,
    testo alternativo, didascalia della vista, link, titolo e descrizione. Il numero "Tav." e il conteggio
    dei modelli sono automatici. Il blocco `.sub` (link alle sezioni) è facoltativo e sostituisce il pulsante
@@ -64,6 +69,20 @@ Cosa controllare dopo una modifica:
    git commit -m "Aggiunge modello <nome>"
    git push
    ```
+
+## Video della prima schermata
+
+Il video in alto nella homepage è il modello del ginocchio che ruota su sé stesso, in loop. Dopo una modifica
+al modello va rigenerato, con il server locale attivo:
+
+```bash
+node strumenti/video-home.mjs ginocchio-3d --dist=1.5
+```
+
+Salva `assets/video/ginocchio-3d.mp4` (H.264, senza audio, ~15 s) e `assets/video/ginocchio-3d.jpg`
+(primo fotogramma: poster e immagine fissa per chi ha attivo "riduci movimento"). Richiede anche ffmpeg
+(`brew install ffmpeg`). Opzioni e dettagli in testa allo script; `--prova` salva solo il primo fotogramma.
+Per usare un altro modello basta cambiare il nome nello script e i due percorsi del `<video>` in `index.html`.
 
 ## Pubblicazione
 

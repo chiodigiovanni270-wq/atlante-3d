@@ -5,233 +5,300 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Atlante anatomico 3D</title>
 <meta name="description" content="Modelli anatomici 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia. Materiale didattico.">
-<meta name="theme-color" content="#0d1116">
+<meta name="theme-color" content="#070a0d">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spectral:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Spectral:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
 <style>
-/* stessa palette scura dei modelli (tema scuro fisso su tutto il sito) */
+/* palette scura del sito (tema scuro fisso), fondo più profondo in homepage */
 :root{
-  --bg:#161c23; --bg-hi:#2a333d; --bg-lo:#0d1116; --panel:#1e262f; --ink:#e5eaef; --muted:#93a1ae;
-  --line:#324050; --accent:#72b4d0; --shadow:0 6px 24px rgba(0,0,0,.45);
-  --accent-soft:rgba(114,180,208,.12); --accent-edge:rgba(114,180,208,.38);
+  --bg:#070a0d; --bg-2:#0d1116; --panel:#1e262f; --ink:#eef3f6; --ink-2:#c8d3dc; --muted:#93a1ae; --dim:rgba(238,243,246,.4);
+  --line:rgba(255,255,255,.1); --accent:#72b4d0;
   --warn:#ecc85a;   /* giallo dei nervi nei modelli: solo per l'avvertenza */
   --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --pad:max(20px,env(safe-area-inset-left,0px));
+  /* vetro ("liquid glass"): riempimento chiaro trasparente, bordo sottile, riflesso in alto, sfocatura */
+  --glass-bg:linear-gradient(135deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.04) 50%,rgba(255,255,255,.08) 100%);
+  --glass-edge:rgba(255,255,255,.16);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.05),0 24px 60px -24px rgba(0,0,0,.75);
+  --blur:blur(22px) saturate(170%);
+  --ease:cubic-bezier(.2,.7,.2,1);
   color-scheme:dark;
 }
 @media (min-width:720px){:root{--pad:clamp(28px,5vw,64px)}}
+@media (max-width:719px){:root{--blur:blur(14px) saturate(160%)}}   /* meno sfocatura su smartphone: scorrimento fluido */
 *,*::before,*::after{box-sizing:border-box}
-html{background:var(--bg-lo);scroll-behavior:smooth;scroll-padding-top:76px}
-body{margin:0;min-height:100vh;color:var(--ink);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
-  background:
-    radial-gradient(70% 45% at 78% 0%,rgba(114,180,208,.16) 0%,transparent 70%),
-    radial-gradient(ellipse 120% 60% at 50% 0%,var(--bg-hi) 0%,var(--bg) 45%,var(--bg-lo) 100%) no-repeat,
-    var(--bg-lo)}
+html{background:var(--bg);scroll-behavior:smooth;scroll-padding-top:90px}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 a{color:var(--accent)}
-a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
-.wrap{max-width:1200px;margin:0 auto;padding-left:var(--pad);padding-right:var(--pad)}
-.kicker{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--accent)}
-.sec-head h2{margin:8px 0 0;font:600 clamp(28px,4.2vw,40px)/1.1 var(--sans);letter-spacing:-.025em}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:10px}
+.wrap{max-width:1440px;margin:0 auto;padding-left:var(--pad);padding-right:var(--pad)}
+.glass{background:var(--glass-bg);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.glass{background:rgba(22,28,35,.94)}}
+.kicker{margin:0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--accent)}
+.sec-head{display:flex;flex-direction:column;gap:14px}
+.sec-head h2{margin:0;font:300 clamp(42px,6.4vw,88px)/1 var(--sans);letter-spacing:-.045em}
+.sec-head h2 span{color:var(--dim)}
 
-/* barra in alto */
-.topbar{position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0px);background:rgba(13,17,22,.72);
-  -webkit-backdrop-filter:saturate(140%) blur(14px);backdrop-filter:saturate(140%) blur(14px);border-bottom:1px solid rgba(50,64,80,.6)}
-.topbar .wrap{height:60px;display:flex;align-items:center;gap:8px}
-.brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--ink);text-decoration:none;font-weight:600;font-size:16px;letter-spacing:-.01em}
+/* barra in alto: trasparente sopra la prima schermata, pillola di vetro dopo lo scorrimento */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;padding:calc(env(safe-area-inset-top,0px) + 12px) max(12px,var(--pad)) 0;pointer-events:none}
+.bar{pointer-events:auto;max-width:1312px;margin:0 auto;height:60px;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;border-radius:999px;border:1px solid transparent;
+  transition:background-color .35s,border-color .35s,box-shadow .35s,-webkit-backdrop-filter .35s,backdrop-filter .35s}
+.topbar.scrolled .bar{background:var(--glass-bg);border-color:var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.topbar.scrolled .bar{background:rgba(22,28,35,.94)}}
+.brand{display:inline-flex;align-items:center;gap:11px;min-height:44px;color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.22em;text-transform:uppercase}
 .brand img{display:block}
-.brand b{color:var(--accent);font-weight:700}
-.topnav{margin-left:auto;display:flex;align-items:center;gap:4px}
-.topnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:10px;color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s,background-color .15s}
-.topnav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+.brand b{color:var(--accent);font-weight:600}
+.topnav{margin-left:auto;display:flex;align-items:center;gap:2px}
+.topnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:999px;color:var(--ink-2);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s,background-color .15s}
+.topnav a:hover{color:var(--ink);background:rgba(255,255,255,.06)}
 .topnav .nav-extra{display:none}
-.topnav .nav-cta{min-height:38px;margin-left:6px;padding:0 16px;border:1px solid var(--accent-edge);border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
-.topnav .nav-cta:hover{background:var(--accent);color:var(--bg-lo)}
-@media (min-width:720px){.topnav .nav-extra{display:inline-flex}}
+.topnav .nav-cta{min-height:44px;margin-left:8px;padding:0 20px;background:#f2f6f8;color:var(--bg);font-weight:600}
+.topnav .nav-cta:hover{background:#fff;color:var(--bg)}
+@media (min-width:760px){.topnav .nav-extra{display:inline-flex}}
 
-/* hero */
-.hero{position:relative;display:grid;gap:44px;padding-top:44px;padding-bottom:40px}
-.hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;   /* griglia sottile, sfumata */
-  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
-  background-size:48px 48px;-webkit-mask-image:radial-gradient(70% 70% at 60% 30%,#000 0%,transparent 75%);mask-image:radial-gradient(70% 70% at 60% 30%,#000 0%,transparent 75%)}
-.hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
-h1{margin:0;font:700 clamp(44px,8.6vw,80px)/1 var(--sans);letter-spacing:-.035em}
-h1 em{font:italic 500 1.06em/1 var(--serif);letter-spacing:-.01em;color:var(--accent)}
-.lede{margin:0;max-width:52ch;color:var(--muted);font-size:clamp(16.5px,1.6vw,18.5px);line-height:1.6}
-.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border-radius:999px;font-weight:600;font-size:15.5px;text-decoration:none;
-  transition:background-color .15s,color .15s,border-color .15s}
-.btn svg{transition:transform .15s}
-.btn-primary{background:var(--accent);color:var(--bg-lo);box-shadow:0 10px 30px -10px rgba(114,180,208,.6)}
-.btn-primary:hover{background:#8cc4dc}
-.btn-primary:hover svg{transform:translateY(2px)}
-.btn-ghost{border:1px solid var(--line);color:var(--ink);background:rgba(30,38,47,.5)}
-.btn-ghost:hover{border-color:var(--accent-edge);background:var(--accent-soft)}
-.hero-note{display:flex;align-items:flex-start;gap:10px;margin:6px 0 0;font-size:13.5px;color:var(--muted)}
-.hero-note svg{flex:none;margin-top:1px}
-.hero-note strong{color:var(--ink);font-weight:600}
+/* pulsanti */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:0 28px;border-radius:999px;font:600 15.5px/1 var(--sans);text-decoration:none;
+  transition:background-color .2s,box-shadow .2s,color .2s,border-color .2s}
+.btn svg{transition:transform .2s var(--ease)}
+.btn-light{background:#f2f6f8;color:var(--bg);box-shadow:0 18px 44px -18px rgba(255,255,255,.35)}
+.btn-light:hover{background:#fff}
+.btn-light:hover svg{transform:translateY(2px)}
+.btn-glass{color:var(--ink)}
+.btn-glass:hover{border-color:rgba(255,255,255,.3)}
 
-.hero-visual{position:relative;margin:0 0 36px}
-.shot{position:relative;margin:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:var(--bg);
-  box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.02)}
-.shot img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover}
-.ui-views{position:absolute;top:12px;right:12px;display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:var(--shadow);
-  font-size:12px;font-weight:500}
-.ui-views span{padding:5px 8px;border-radius:7px}
-.ui-views .on{background:var(--accent);color:var(--panel)}
-.ui-card{position:relative;width:min(290px,86%);margin:-40px 14px 0 auto;padding:12px 14px;border:1px solid var(--line);border-left:4px solid #e6e1d3;border-radius:12px;
-  background:var(--panel);box-shadow:0 20px 50px -12px rgba(0,0,0,.7)}
-.ui-card strong{display:block;font:600 17px/1.25 var(--serif)}
-.ui-card span{display:block;margin:2px 0 6px;font-size:12px;color:var(--muted)}
-.ui-card p{margin:0;font-size:13px;line-height:1.45}
-.shot-alt{display:none}
-
-@media (min-width:960px){
-  .hero{grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);align-items:center;gap:56px;padding-top:72px;padding-bottom:112px}
-  .hero-visual{margin:0 0 40px 0}
-  .ui-card{position:absolute;left:-36px;bottom:-40px;margin:0;width:280px}
-  .shot-alt{display:block;position:absolute;right:-18px;bottom:-64px;width:44%;border-radius:14px}
+/* prima schermata: video del modello che ruota, testo in basso a sinistra */
+.hero{position:relative;isolation:isolate;min-height:max(660px,100svh);display:flex;flex-direction:column;justify-content:flex-end;gap:40px;overflow:hidden;
+  padding-top:calc(env(safe-area-inset-top,0px) + 96px);padding-bottom:28px}
+.hero-media{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.hero-media video{position:absolute;left:50%;top:52px;width:min(1000px,165vw);height:auto;aspect-ratio:8/5;transform:translateX(-50%);object-fit:cover;background:var(--bg);
+  -webkit-mask-image:radial-gradient(ellipse 48% 56% at 50% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 48% 56% at 50% 50%,#000 55%,transparent 100%)}
+.hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,var(--bg) 30%,rgba(7,10,13,0) 62%)}
+.hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:22px;max-width:680px}
+h1{margin:0;font:300 clamp(54px,8.4vw,120px)/.95 var(--sans);letter-spacing:-.05em}
+h1 span{color:var(--accent)}
+.tagline{margin:0;max-width:24ch;font:300 clamp(21px,2.3vw,30px)/1.25 var(--sans);letter-spacing:-.02em;color:var(--dim)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.hero-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.hero-foot p{display:flex;align-items:flex-start;gap:10px;margin:0}
+.hero-foot svg{flex:none}
+.hero-foot strong{color:var(--ink);font-weight:600}
+.scroll-cue{display:none;align-items:center;gap:10px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--muted);text-decoration:none}
+.scroll-cue i{display:block;width:1px;height:28px;background:linear-gradient(var(--muted),transparent)}
+/* scheda di esempio in vetro sopra il modello (solo schermi larghi) */
+.hero-card{display:none}
+@media (max-width:719px){
+  .cta{align-self:stretch;flex-direction:column}
+  .cta .btn{width:100%}
+}
+@media (min-width:880px){
+  .hero{justify-content:flex-end;padding-bottom:32px}
+  .hero-media video{left:auto;right:-7vw;top:50%;width:min(1240px,80vw);transform:translateY(-54%);
+    -webkit-mask-image:radial-gradient(ellipse 46% 56% at 50% 50%,#000 52%,transparent 100%);mask-image:radial-gradient(ellipse 46% 56% at 50% 50%,#000 52%,transparent 100%)}
+  .hero-media::after{background:linear-gradient(90deg,var(--bg) 0%,rgba(7,10,13,.8) 30%,rgba(7,10,13,0) 58%),linear-gradient(0deg,var(--bg) 0%,rgba(7,10,13,0) 30%)}
+  .scroll-cue{display:inline-flex}
+}
+@media (min-width:1100px){
+  .hero-card{display:flex;flex-direction:column;gap:6px;position:absolute;right:var(--pad);bottom:150px;width:300px;padding:16px 18px 18px;border-radius:22px}
+  .hero-card .cat{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+  .hero-card .cat::before{content:"";width:8px;height:8px;border-radius:50%;background:#e6e1d3}
+  .hero-card strong{font:600 19px/1.25 var(--serif)}
+  .hero-card p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
 }
 
-/* come si usa */
-.features{padding-top:8px;padding-bottom:96px}
-.feat-grid{list-style:none;margin:32px 0 0;padding:0;display:grid;gap:14px}
-.feat{display:flex;gap:16px;align-items:flex-start;padding:20px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,rgba(30,38,47,.85),rgba(30,38,47,.45))}
-.feat-ico{flex:none;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(114,180,208,.2)}
-.feat h3{margin:0 0 4px;font-size:16.5px;font-weight:600;letter-spacing:-.01em}
-.feat p{margin:0;font-size:14.5px;line-height:1.5;color:var(--muted)}
-@media (min-width:720px){.feat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.feat{flex-direction:column;gap:18px;padding:24px}}
-@media (min-width:1040px){.feat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* frase introduttiva: le parole si accendono durante lo scorrimento */
+.intro{padding-top:clamp(96px,14vw,180px);padding-bottom:clamp(72px,9vw,120px)}
+.lit{margin:24px 0 0;max-width:1180px;font:300 clamp(28px,3.9vw,56px)/1.16 var(--sans);letter-spacing:-.03em}
+.lit .w{color:var(--ink);opacity:.2;transition:opacity .35s}
+.lit .w.on{opacity:1}
+.stats{list-style:none;margin:clamp(64px,8vw,104px) 0 0;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
+.stats li{display:flex;align-items:baseline;gap:18px;padding:22px 0;border-bottom:1px solid var(--line)}
+.stats b{flex:none;min-width:2.4ch;font:300 clamp(52px,6vw,88px)/1 var(--sans);letter-spacing:-.05em}
+.stats span{font-size:15px;color:var(--muted);max-width:26ch}
+@media (min-width:880px){
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stats li{flex-direction:column;gap:10px;padding:28px 28px 0 0;border-bottom:0}
+  .stats li+li{padding-left:28px;border-left:1px dashed rgba(255,255,255,.14)}
+}
 
 /* modelli */
-.models{position:relative;padding-top:24px;padding-bottom:88px}
-.models .sec-head{padding-right:110px}
-.grid{list-style:none;margin:32px 0 0;padding:0;display:grid;gap:22px;counter-reset:tav}
+.models{position:relative;padding-top:clamp(40px,6vw,72px);padding-bottom:clamp(96px,12vw,152px)}
+.models .sec-head{padding-right:120px}
+.models .sec-head p:not(.kicker){margin:0;font-size:16px;color:var(--muted)}
+.grid{list-style:none;margin:48px 0 0;padding:0;display:grid;gap:20px;counter-reset:tav}
 /* numero di modelli, calcolato dal CSS: si aggiorna da solo aggiungendo card */
-.grid::after{content:counter(tav) " modelli";position:absolute;top:58px;right:var(--pad);padding:5px 12px;border:1px solid var(--line);border-radius:999px;
-  font-size:13px;font-weight:500;color:var(--muted)}
+.grid::after{content:counter(tav) " modelli";position:absolute;top:calc(clamp(40px,6vw,72px) + 26px);right:var(--pad);display:flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;
+  border:1px solid var(--glass-edge);background:var(--glass-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,.28);font-size:13px;font-weight:600;color:var(--ink-2)}
 .grid:has(> .card:only-child)::after{content:"1 modello"}
-@media (min-width:720px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}}
+@media (min-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}}
 
-.card{position:relative;display:flex;flex-direction:column;counter-increment:tav;overflow:hidden;border:1px solid var(--line);border-radius:22px;
-  background:linear-gradient(180deg,var(--panel) 0%,#1a2129 100%);box-shadow:var(--shadow);transition:border-color .2s,transform .2s,box-shadow .2s}
-.card:hover{border-color:var(--accent-edge);transform:translateY(-4px);box-shadow:0 30px 60px -24px rgba(0,0,0,.8),0 0 0 1px var(--accent-edge),0 20px 60px -30px rgba(114,180,208,.45)}
+.card{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;min-height:clamp(540px,48vw,680px);counter-increment:tav;overflow:hidden;
+  border:1px solid var(--line);border-radius:30px;background:var(--bg-2);box-shadow:0 40px 80px -40px rgba(0,0,0,.9);transition:border-color .3s,box-shadow .3s}
+.card:hover{border-color:rgba(114,180,208,.45);box-shadow:0 40px 80px -40px rgba(0,0,0,.9),0 30px 80px -40px rgba(114,180,208,.35)}
 .card:has(.card-link:focus-visible){outline:2px solid var(--accent);outline-offset:4px}
-.card-media{position:relative;margin:0;overflow:hidden;background:var(--bg)}
-.card-media img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
-.card:hover .card-media img{transform:scale(1.045)}
-.card-media::after{content:"";position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(to top,var(--panel),transparent);pointer-events:none}
-.chip{position:absolute;top:14px;z-index:1;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid rgba(255,255,255,.1);border-radius:999px;
-  background:rgba(13,17,22,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:12.5px;font-weight:600;color:var(--ink);pointer-events:none}
-.card-num{left:14px;color:var(--accent)}
+.card-media{position:absolute;inset:0;z-index:-1;margin:0}
+.card-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 28%;transition:transform .9s var(--ease)}
+.card:hover .card-media img{transform:scale(1.04)}
+.chip{position:absolute;top:16px;z-index:1;display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);pointer-events:none}
+.card-num{left:16px;color:var(--accent)}
 .card-num::before{content:"Tav. " counter(tav,upper-roman)}
-.card-region{right:14px}
-.card-body{flex:1;display:flex;flex-direction:column;gap:10px;padding:4px 22px 22px}
-.card-view{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-.card h3{margin:0;font:600 clamp(25px,2.6vw,30px)/1.1 var(--serif);letter-spacing:-.005em}
+.card-region{right:16px}
+.card-body{display:flex;flex-direction:column;gap:10px;margin:12px;padding:22px 22px 22px;border-radius:22px;
+  background:linear-gradient(135deg,rgba(16,22,29,.62) 0%,rgba(16,22,29,.38) 100%)}
+.card-view{margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.card h3{margin:0;font:300 clamp(30px,3.1vw,42px)/1.05 var(--sans);letter-spacing:-.035em}
 .card-link{color:var(--ink);text-decoration:none}
 .card-link:focus-visible{outline:none}
 .card-link::after{content:"";position:absolute;inset:0;z-index:0}   /* tutta la card è cliccabile */
-.card .desc{margin:0 0 8px;color:var(--muted);font-size:15px;line-height:1.55}
-.go,.sub a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid var(--accent-edge);border-radius:999px;
-  background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:15px;text-decoration:none;transition:background-color .15s,color .15s}
-.go{align-self:flex-start;margin:auto 0 0}
-.go svg,.sub a svg{transition:transform .15s}
-.card:hover .go{background:var(--accent);color:var(--bg-lo)}
+.card .desc{margin:0 0 6px;color:var(--ink-2);font-size:15px;line-height:1.55}
+.go,.sub a{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:15px;text-decoration:none;transition:background-color .2s,color .2s}
+.go{align-self:flex-start;margin:4px 0 0;background:#f2f6f8;color:var(--bg)}
+.go svg,.sub a svg{transition:transform .2s var(--ease)}
+.card:hover .go{background:#fff}
 .card:hover .go svg{transform:translateX(3px)}
 .card:has(.sub) .go{display:none}          /* con i link alle sezioni il pulsante generico non serve */
-.sub{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:auto 0 0}
-.sub-label{margin-right:4px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-.sub a:hover{background:var(--accent);color:var(--bg-lo)}
+.sub{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 0}
+.sub-label{margin-right:6px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.sub a{color:var(--ink);background:rgba(255,255,255,.1);border:1px solid var(--glass-edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+.sub a:first-of-type{background:#f2f6f8;color:var(--bg);border-color:transparent}
+.sub a:hover{background:#fff;color:var(--bg)}
 .sub a:hover svg{transform:translateX(3px)}
+@media (max-width:519px){.card-body{margin:10px;padding:20px}}
+
+/* come si usa: elenco a righe sottili in un pannello di vetro */
+.usage{position:relative;isolation:isolate;overflow:hidden;padding-top:clamp(32px,4vw,56px);padding-bottom:clamp(96px,12vw,152px)}
+.usage-bg{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.usage-bg img{position:absolute;left:50%;top:50%;width:min(1200px,160vw);height:auto;transform:translate(-40%,-45%);filter:blur(64px) saturate(140%);opacity:.5}
+.usage-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--bg) 0%,rgba(7,10,13,.25) 30%,rgba(7,10,13,.25) 70%,var(--bg) 100%)}
+.steps{list-style:none;margin:48px 0 0;padding:6px 26px;border-radius:30px}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr) 48px;align-items:start;gap:4px 16px;padding:24px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .n{font:300 17px/1.6 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums}
+.step h3{margin:0;font:400 clamp(21px,2vw,26px)/1.25 var(--sans);letter-spacing:-.02em}
+.step p{grid-column:2;margin:0;font-size:15px;line-height:1.55;color:var(--ink-2)}
+.step .ico{grid-row:1 / span 2;grid-column:3;justify-self:end;display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;
+  color:var(--accent);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+@media (min-width:880px){
+  .steps{padding:8px 36px}
+  .step{grid-template-columns:64px minmax(0,.9fr) minmax(0,1.3fr) 52px;align-items:center;gap:24px;padding:30px 0}
+  .step .n{font-size:20px}
+  .step p{grid-column:3;font-size:16px}
+  .step .ico{grid-row:auto;grid-column:4}
+}
+
+/* ingresso morbido di card e righe allo scorrimento (solo con JS attivo) */
+.js .card,.js .step{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease),border-color .3s,box-shadow .3s}
+.js .card.in,.js .step.in{opacity:1;transform:none}
 
 /* piè di pagina */
-footer{border-top:1px solid var(--line);background:rgba(13,17,22,.6);padding-top:40px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
-.warn-band{display:flex;align-items:flex-start;gap:12px;margin:0;padding:16px 18px;border:1px solid rgba(236,200,90,.3);border-radius:16px;background:rgba(236,200,90,.07);font-size:15px;line-height:1.45}
+footer{position:relative;overflow:hidden;border-top:1px solid var(--line);padding-top:56px;padding-bottom:0}
+.warn-band{display:flex;align-items:flex-start;gap:12px;margin:0;padding:16px 20px;border:1px solid rgba(236,200,90,.3);border-radius:20px;
+  background:linear-gradient(135deg,rgba(236,200,90,.12),rgba(236,200,90,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.1);font-size:15px;line-height:1.45}
 .warn-band svg{flex:none;margin-top:1px}
 .warn-band strong{font-weight:600}
-.foot-grid{display:grid;gap:28px;margin-top:36px}
+.foot-grid{display:grid;gap:32px;margin-top:44px}
 .foot-grid p{margin:0}
-.foot-brand p{margin-top:10px;max-width:40ch;font-size:14px;color:var(--muted)}
-.foot-brand .foot-author{margin-top:14px}
+.foot-brand p{margin-top:12px;max-width:40ch;font-size:14px;color:var(--muted)}
 .foot-author strong{font-weight:600;color:var(--ink)}
-.f-label{margin:0 0 10px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-.f-lic{font-size:13.5px;line-height:1.6;color:var(--muted)}
+.f-label{margin:0 0 10px;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.f-lic{font-size:13.5px;line-height:1.65;color:var(--muted)}
 .f-lic strong{color:var(--ink);font-weight:600}
-.f-cite{font:italic 500 14px/1.55 var(--serif);color:var(--muted)}
-@media (min-width:720px){.foot-grid{grid-template-columns:1.1fr 1.5fr 1fr;gap:48px}}
+.f-cite{font:italic 500 14.5px/1.55 var(--serif);color:var(--muted)}
+.wordmark{margin:56px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);font:600 clamp(84px,21vw,320px)/.78 var(--sans);letter-spacing:-.05em;white-space:nowrap;text-align:center;
+  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,0) 90%);-webkit-background-clip:text;background-clip:text;
+  transform:translateY(12%);user-select:none}
+@media (min-width:760px){.foot-grid{grid-template-columns:1.1fr 1.5fr 1fr;gap:56px}}
 
-/* ingresso morbido della prima schermata */
-@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-.hero-text>*,.hero-visual{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
-.hero-text>:nth-child(2){animation-delay:.06s}.hero-text>:nth-child(3){animation-delay:.12s}
-.hero-text>:nth-child(4){animation-delay:.18s}.hero-text>:nth-child(5){animation-delay:.24s}
-.hero-visual{animation-delay:.2s}
+/* ingresso della prima schermata */
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.hero-text>*,.hero-foot{animation:rise .9s var(--ease) both}
+.hero-text>:nth-child(2){animation-delay:.08s}.hero-text>:nth-child(3){animation-delay:.16s}.hero-foot{animation-delay:.3s}
+.hero-media{animation:fade 1.4s ease both}
+.hero-card{animation:rise .9s var(--ease) .45s both}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none !important;transition:none !important}
-  .card:hover{transform:none}.card:hover .card-media img{transform:none}
+  .js .card,.js .step{opacity:1;transform:none}
+  .lit .w{opacity:1}
+  .card:hover .card-media img{transform:none}
 }
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="wrap">
+  <div class="bar">
     <a class="brand" href="./"><img src="assets/favicon.svg" width="30" height="30" alt="">Atlante <b>3D</b></a>
     <nav class="topnav" aria-label="Sezioni della pagina">
       <a class="nav-extra" href="#uso">Come si usa</a>
+      <a class="nav-extra" href="#crediti">Crediti</a>
       <a class="nav-cta" href="#modelli">Modelli</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <section class="hero wrap">
-    <div class="hero-text">
-      <h1>Atlante <em>anatomico</em> 3D</h1>
-      <p class="lede">Modelli interattivi da ruotare, scomporre per strati e consultare struttura per struttura,
-        con note di interesse radiologico. Direttamente nel browser, anche da smartphone.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="#modelli">Esplora i modelli <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
-        <a class="btn btn-ghost" href="#uso">Come si usa</a>
-      </div>
-      <p class="hero-note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
-        <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
+  <section class="hero wrap" aria-labelledby="titolo">
+    <!-- video decorativo: il modello del ginocchio che ruota (strumenti/video-home.mjs); il poster è il primo fotogramma -->
+    <div class="hero-media" aria-hidden="true">
+      <video id="heroVideo" autoplay muted loop playsinline preload="auto" poster="assets/video/ginocchio-3d.jpg" width="1280" height="800" tabindex="-1">
+        <source src="assets/video/ginocchio-3d.mp4" type="video/mp4">
+      </video>
     </div>
 
-    <!-- illustrazione decorativa: anteprime e una scheda reale del modello del ginocchio -->
-    <div class="hero-visual" aria-hidden="true">
-      <figure class="shot shot-main">
-        <img src="assets/anteprime/ginocchio-3d.jpg" width="800" height="500" alt="" fetchpriority="high">
-        <div class="ui-views"><span class="on">Ant</span><span>Post</span><span>Lat</span><span>Med</span></div>
-      </figure>
-      <figure class="shot shot-alt"><img src="assets/anteprime/polso-dito-3d.jpg" width="800" height="500" alt="" loading="lazy"></figure>
-      <div class="ui-card">
-        <strong>Legamento crociato anteriore (LCA)</strong>
-        <span>Legamenti</span>
-        <p>Limita traslazione anteriore e rotazione interna della tibia.</p>
+    <div class="hero-text">
+      <h1 id="titolo">Atlante<br>anatomico <span>3D</span></h1>
+      <p class="tagline">Anatomia muscolo-scheletrica per la radiologia, in tre dimensioni.</p>
+      <div class="cta">
+        <a class="btn btn-light" href="#modelli">Esplora i modelli <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
+        <a class="btn btn-glass glass" href="#uso">Come si usa</a>
       </div>
     </div>
+
+    <!-- scheda di esempio, come quelle che si aprono toccando una struttura nel modello -->
+    <div class="hero-card glass" aria-hidden="true">
+      <span class="cat">Legamenti</span>
+      <strong>Legamento crociato anteriore (LCA)</strong>
+      <p>Limita traslazione anteriore e rotazione interna della tibia.</p>
+    </div>
+
+    <div class="hero-foot">
+      <p><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
+        <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
+      <a class="scroll-cue" href="#atlante">Scorri <i aria-hidden="true"></i></a>
+    </div>
+  </section>
+
+  <section id="atlante" class="intro wrap" aria-label="L'atlante">
+    <p class="kicker">L'atlante</p>
+    <p class="lit">Ogni tavola è un modello tridimensionale da ruotare, scomporre per strati e consultare struttura per struttura, con note di anatomia e di interesse radiologico. Direttamente nel browser, anche da smartphone.</p>
+    <ul class="stats">
+      <li><b data-count-models>2</b><span>Tavole interattive, ognuna una pagina indipendente</span></li>
+      <li><b>4</b><span>Viste standard per modello, con un tocco</span></li>
+      <li><b>360°</b><span>Rotazione libera, zoom e strati da mostrare o nascondere</span></li>
+    </ul>
   </section>
 
   <section id="modelli" class="models wrap" aria-labelledby="modelli-titolo">
     <div class="sec-head">
       <p class="kicker">Indice delle tavole</p>
       <h2 id="modelli-titolo">Modelli</h2>
+      <p>Scegli un distretto: il modello si apre a tutto schermo.</p>
     </div>
     <ul class="grid">
       <!-- CARD MODELLO: per aggiungere un modello duplica questo blocco e cambia immagine, alt, distretto, vista, link, titolo e descrizione.
            Il numero "Tav." e il conteggio dei modelli sono automatici. -->
       <li class="card">
         <figure class="card-media">
-          <img src="assets/anteprime/ginocchio-3d.jpg" width="800" height="500" loading="lazy"
+          <img src="assets/anteprime/ginocchio-3d.jpg" width="1600" height="1000" loading="lazy"
                alt="Anteprima del modello 3D del ginocchio destro in vista anteriore">
-          <span class="chip card-num"></span>
-          <span class="chip card-region">Arto inferiore</span>
         </figure>
-        <div class="card-body">
+        <span class="chip card-num glass"></span>
+        <span class="chip card-region glass">Arto inferiore</span>
+        <div class="card-body glass">
           <p class="card-view">Vista anteriore · lato destro</p>
           <h3><a class="card-link" href="modelli/ginocchio-3d.html">Ginocchio destro</a></h3>
           <p class="desc">Ossa, cartilagini, menischi, legamenti, tendini, borse, muscoli, vasi e nervi, con viste standard.</p>
@@ -243,12 +310,12 @@ footer{border-top:1px solid var(--line);background:rgba(13,17,22,.6);padding-top
       <!-- CARD MODELLO (con link alle sezioni: il blocco .sub è facoltativo e sostituisce il pulsante "Apri il modello") -->
       <li class="card">
         <figure class="card-media">
-          <img src="assets/anteprime/polso-dito-3d.jpg" width="800" height="500" loading="lazy"
+          <img src="assets/anteprime/polso-dito-3d.jpg" width="1600" height="1000" loading="lazy"
                alt="Anteprima del modello 3D del polso destro in vista volare">
-          <span class="chip card-num"></span>
-          <span class="chip card-region">Arto superiore</span>
         </figure>
-        <div class="card-body">
+        <span class="chip card-num glass"></span>
+        <span class="chip card-region glass">Arto superiore</span>
+        <div class="card-body glass">
           <p class="card-view">Vista volare · lato destro</p>
           <h3><a class="card-link" href="modelli/polso-dito-3d.html">Polso destro e dito</a></h3>
           <p class="desc">Carpo, legamenti e TFCC, retinacoli, compartimenti estensori, tunnel carpale e canale di Guyon. Sezione separata per il dito medio, con tendini flessori e pulegge.</p>
@@ -261,31 +328,42 @@ footer{border-top:1px solid var(--line);background:rgba(13,17,22,.6);padding-top
       <!-- /CARD MODELLO -->
     </ul>
   </section>
-  <section id="uso" class="features wrap" aria-labelledby="uso-titolo">
-    <div class="sec-head">
-      <p class="kicker">Come si usa</p>
-      <h2 id="uso-titolo">Ogni modello, a portata di dito</h2>
-    </div>
-    <ul class="feat-grid">
-      <li class="feat">
-        <span class="feat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
-        <div><h3>Ruota e ingrandisci</h3><p>Trascina per ruotare, pizzica o usa la rotella per ingrandire, due dita per spostare.</p></div>
-      </li>
-      <li class="feat">
-        <span class="feat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-        <div><h3>Viste standard</h3><p>Anteriore, posteriore, laterale e mediale con un tocco; volare, dorsale, radiale e ulnare per il polso.</p></div>
-      </li>
-      <li class="feat">
-        <span class="feat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></span>
-        <div><h3>Scheda di ogni struttura</h3><p>Tocca una struttura per leggerne categoria e note anatomiche e radiologiche.</p></div>
-      </li>
-      <li class="feat">
-        <span class="feat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
-        <div><h3>Strati</h3><p>Mostra o nascondi le categorie, isola una struttura con le ossa, rendi trasparenti i muscoli.</p></div>
-      </li>
-    </ul>
-  </section>
 
+  <section id="uso" class="usage" aria-labelledby="uso-titolo">
+    <div class="usage-bg" aria-hidden="true"><img src="assets/anteprime/polso-dito-3d.jpg" width="1600" height="1000" alt="" loading="lazy"></div>
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">Come si usa</p>
+        <h2 id="uso-titolo">Ogni modello, <span>a portata di dito.</span></h2>
+      </div>
+      <ol class="steps glass">
+        <li class="step">
+          <span class="n">01</span>
+          <h3>Ruota e ingrandisci</h3>
+          <p>Trascina per ruotare, pizzica o usa la rotella per ingrandire, due dita per spostare.</p>
+          <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
+        </li>
+        <li class="step">
+          <span class="n">02</span>
+          <h3>Viste standard</h3>
+          <p>Anteriore, posteriore, laterale e mediale con un tocco; volare, dorsale, radiale e ulnare per il polso.</p>
+          <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+        </li>
+        <li class="step">
+          <span class="n">03</span>
+          <h3>Scheda di ogni struttura</h3>
+          <p>Tocca una struttura per leggerne categoria e note anatomiche e radiologiche.</p>
+          <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></span>
+        </li>
+        <li class="step">
+          <span class="n">04</span>
+          <h3>Strati</h3>
+          <p>Mostra o nascondi le categorie, isola una struttura con le ossa, rendi trasparenti i muscoli.</p>
+          <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+        </li>
+      </ol>
+    </div>
+  </section>
 </main>
 
 <footer id="crediti">
@@ -310,7 +388,72 @@ footer{border-top:1px solid var(--line);background:rgba(13,17,22,.6);padding-top
         <p class="f-cite">Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p>
       </div>
     </div>
+    <p class="wordmark" aria-hidden="true">Atlante 3D</p>
   </div>
 </footer>
+
+<script>
+/* solo effetti visivi: nessun dato raccolto, nessuna chiamata di rete */
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* barra in alto: vetro dopo lo scorrimento */
+  var top = document.querySelector('.topbar');
+  function onScroll(){ top.classList.toggle('scrolled', window.scrollY > 24); }
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  /* numero di tavole = numero di card */
+  var n = document.querySelectorAll('.grid > .card').length;
+  document.querySelectorAll('[data-count-models]').forEach(function(el){ el.textContent = n; });
+
+  /* video: fermo (poster) con "riduci movimento" o risparmio dati; in pausa quando non è visibile */
+  var v = document.getElementById('heroVideo');
+  if (v) {
+    var saveData = navigator.connection && navigator.connection.saveData;
+    if (reduce || saveData) { v.removeAttribute('autoplay'); v.pause(); v.preload = 'none'; }
+    else if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function(e){
+        if (e[0].isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function(){}); } else v.pause();
+      }).observe(v);
+    }
+  }
+
+  /* frase introduttiva: parole che si accendono con lo scorrimento */
+  var lit = document.querySelector('.lit');
+  if (lit && !reduce) {
+    var words = lit.textContent.trim().split(/\s+/);
+    lit.textContent = '';
+    var spans = words.map(function(w, i){
+      var s = document.createElement('span'); s.className = 'w'; s.textContent = w;
+      lit.appendChild(s); if (i < words.length - 1) lit.appendChild(document.createTextNode(' '));
+      return s;
+    });
+    var ticking = false;
+    function paint(){
+      ticking = false;
+      var r = lit.getBoundingClientRect(), vh = window.innerHeight;
+      var p = (vh * 0.85 - r.top) / (r.height + vh * 0.35);          // 0 quando entra, 1 poco dopo metà schermo
+      var k = Math.round(Math.max(0, Math.min(1, p)) * spans.length);
+      spans.forEach(function(s, i){ s.classList.toggle('on', i < k); });
+    }
+    addEventListener('scroll', function(){ if (!ticking) { ticking = true; requestAnimationFrame(paint); } }, { passive: true });
+    addEventListener('resize', paint); paint();
+  }
+
+  /* card e righe: ingresso morbido quando entrano nello schermo */
+  var items = document.querySelectorAll('.card, .step');
+  if (reduce || !('IntersectionObserver' in window)) items.forEach(function(el){ el.classList.add('in'); });
+  else {
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (!e.isIntersecting) return;
+        var el = e.target; el.classList.add('in'); io.unobserve(el);
+        setTimeout(function(){ el.style.transitionDelay = ''; }, 1000);   // il ritardo serve solo all'ingresso
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    items.forEach(function(el, i){ el.style.transitionDelay = (i % 2) * 90 + 'ms'; io.observe(el); });
+  }
+})();
+</script>
 </body>
 </html>
