@@ -1,7 +1,8 @@
 /* Decorso di arterie, vene e nervi del ginocchio (tubi procedurali in modelli/ginocchio-3d.html) negli spazi tra i
    muscoli, senza attraversare ossa, muscoli, tendini o legamenti e senza curve innaturali.
 
-   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs, capsula-ginocchio.mjs, cute-ginocchio.mjs e borse-ginocchio.mjs):
+   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs, capsula-ginocchio.mjs, cute-ginocchio.mjs e borse-ginocchio.mjs;
+   dopo, estremi-ginocchio.mjs):
      node strumenti/percorsi-ginocchio.mjs [--prova]
    Con --prova stampa solo le verifiche, senza modificare il file. Guide e soleo di partenza vengono dalla revisione git
    ORIGINALE, quindi lo script si può rilanciare. Per le prove: SOLO=id1,id2 (solo alcuni tubi), DEBUG=1.
@@ -363,7 +364,27 @@ function guida(P) {
     let b = nuovo[0], bd = Infinity; for (const p of nuovo) { const d = 4 * Math.abs(p[1] - q0[1]) + Math.hypot(p[0] - q0[0], p[2] - q0[2]); if (d < bd) { bd = d; b = p; } } return b.slice(); };
   if (P.attacca) g[0] = aggancio(P.attacca, P.da || tubo0(H0, P).pts[0]);
   if (P.attaccaFine) g[g.length - 1] = aggancio(P.attaccaFine, tubo0(H0, P).pts.at(-1));
-  return leviga(curva(g), P.leviga ?? 120);
+  return leviga(curva(sezione(g, 0.6)), P.leviga ?? 120);
+}
+/* ============ Sezioni di taglio ============ */
+// Il modello è tagliato a metà coscia e a metà gamba sul piano della cute, y = ±TAGLIO (le mesh vi sono portate da
+// estremi-ginocchio.mjs). I tubi che arrivano alla sezione (estremo con |y| > 18 cm) vi terminano tutti: la guida
+// viene accorciata o prolungata (lungo la direzione dell'ultimo centimetro) fino a TAGLIO − coda e l'ultimo tratto è
+// verticale, così il tappo del tubo è orizzontale e giace sul piano.
+const TAGLIO = 20.1;
+function sezione(P, coda) {
+  const fine = Q => {
+    const s = Math.sign(Q.at(-1)[1]); if (s * Q.at(-1)[1] < 18) return Q;
+    const Yb = TAGLIO - coda, out = []; let c = null;
+    for (let i = 0; i < Q.length; i++) { const p = Q[i]; if (s * p[1] <= Yb) { out.push(p.slice()); continue; }
+      const q = Q[i - 1]; c = add(q, sub(p, q), (s * Yb - q[1]) / (p[1] - q[1])); break; }
+    if (!c) { const b = out.at(-1); let k = out.length - 2; while (k > 0 && len(sub(b, out[k])) < 1) k--; const a = out[Math.max(0, k)];
+      const d = sub(b, a); if (s * d[1] < 0.2 * len(d)) throw new Error('tubo quasi orizzontale alla sezione');
+      c = add(b, d, (s * Yb - b[1]) / d[1]); }
+    if (len(sub(out.at(-1), c)) < 0.1) out.pop();
+    return [...out, c, [c[0], s * (TAGLIO - coda / 2), c[2]], [c[0], s * TAGLIO, c[2]]];
+  };
+  return fine(fine(P).reverse()).reverse();
 }
 // Catmull-Rom centripeta ogni 2,5 mm: la guida è già una curva dolce
 function curva(P) {
@@ -481,7 +502,7 @@ function instrada(P) {
   const gp = y => 0.3 * (P.guidaPesi ? P.guidaPesi(y) : 1); // anche la banda elastica resta legata alla guida
   path = elastica(path, (p, k) => F.pen(...p) + extra(p) + gp(p[1]) * (dot(sub(p, S[k]), Ux[k]) ** 2 + dot(sub(p, S[k]), Vx[k]) ** 2), Ux, Vx, 20 * (P.liscio || 1), pre); // estremi fermi (aggancio o punto scelto dalla ricerca)
   if (process.env.DEBUG) log(`  dopo elastica: n ${path.length}, y ${path.filter((_, k) => k % 8 === 0).map(p => p[1].toFixed(1)).join(' ')}`);
-  const out = path.filter((_, k) => k % 2 === 0 || k === n - 1);
+  const out = sezione(path.filter((_, k) => k % 2 === 0 || k === n - 1), 0.25); // tappo orizzontale sul piano di taglio
   // verifica: compenetrazione del tubo (raggio r) nelle strutture da evitare (tunnel esclusi nel loro intervallo), in mm
   const valuta = pts => { let mx = 0, n5 = 0; const Q = ricampiona(pts, 0.1); for (const p of Q) { const q = r - sample(F.Dmin, ...p); if (Object.entries(F.tun).some(([, [a, b]]) => p[1] >= a && p[1] <= b)) continue; mx = Math.max(mx, q); if (q > 0.05) n5++; }
     return `compenetrazione massima ${(Math.max(0, mx) * 10).toFixed(1)} mm, oltre 0,5 mm nel ${(100 * n5 / Q.length).toFixed(0)}% del decorso`; };
