@@ -9,7 +9,7 @@
    Anatomia di riferimento (Standring S, Gray's Anatomy, 42ª ed., Elsevier 2020):
    - Arteria e vena femorale nel canale degli adduttori sotto il sartorio, tra vasto mediale e adduttore magno; iato
      degli adduttori; nella fossa poplitea, dal profondo al superficiale: arteria (sulla faccia poplitea del femore e sulla
-     capsula), vena, nervo tibiale. Il fascio scende tra i capi del gastrocnemio sul popliteo e passa sotto l'arcata
+     capsula, posteriore al legamento popliteo obliquo, che rinforza la capsula), vena, nervo tibiale. Il fascio scende tra i capi del gastrocnemio sul popliteo e passa sotto l'arcata
      tendinea del soleo, dove l'arteria si divide in tibiale anteriore (sopra la membrana interossea, poi nella loggia
      anteriore tra tibiale anteriore ed estensore lungo delle dita) e tibiale posteriore (tra tibiale posteriore e soleo),
      che dà la peroniera lungo il perone.
@@ -29,12 +29,13 @@
    muscoli, tendini, legamenti, borse e negli altri tubi, distanza dalla guida, curvatura, piano (sottocutaneo o sotto
    l'involucro dei muscoli) e vicinanza al vaso satellite. Poi una banda elastica (energia di flessione + penalità, ogni
    punto si muove solo nel proprio piano trasversale) toglie le pieghe; i rami escono tangenti al tronco quando nascono
-   nella sua direzione. La mesh del soleo (BodyParts3D) non ha l'arcata tendinea: il passaggio viene ricostruito con una
-   doccia liscia nella faccia anteriore del muscolo. */
+   nella sua direzione; alle biforcazioni e all'origine dei rami il calibro si raccorda (r0/r1 di tube()). Le mesh dei muscoli
+   (BodyParts3D) non hanno gli spazi in cui scorrono vasi e nervi (arcata del soleo, grasso della fossa, iato degli adduttori,
+   tunnel fibulare): dopo il calcolo vengono scavati solchi lisci lungo i tubi (SCAVA). */
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { M, FILE, REAL, man, setPos, repack, saveFile, setGriglia, solid, edt, sample, clamp, sstep, log, reManRe, reDatRe } from './lib-modello.mjs';
+import { M, REAL, setPos, repack, saveFile, setGriglia, solid, edt, sample, clamp, sstep, log, reManRe, reDatRe } from './lib-modello.mjs';
 import * as G from './lib-modello.mjs'; // griglia corrente (O, H, NX, NY, NZ, N cambiano con setGriglia)
 
 const PROVA = process.argv.includes('--prova');
@@ -42,26 +43,65 @@ const ORIGINALE = 'b4df739';
 const RADICE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const H0 = execFileSync('git', ['show', `${ORIGINALE}:modelli/ginocchio-3d.html`], { cwd: RADICE, maxBuffer: 1 << 30 }).toString('utf8');
 
-/* ============ Arcata del soleo ============ */
-// La mesh del soleo (BodyParts3D) non ha l'arcata tendinea tra i capi tibiale e fibulare: il margine superiore aderisce
-// al popliteo e al tibiale posteriore. Si ricostruisce il passaggio scavando una doccia liscia nella faccia anteriore del
-// soleo (asse appena davanti al muscolo, i vertici vicini arretrano) lungo il decorso del fascio
-// neurovascolare (vasi poplitei → tibiali posteriori, nervo tibiale), partendo sempre dalla mesh originale.
-const ARCATA = { r: 1.2, asse: [[0.4, -6.2, -2.5], [0.35, -6.6, -2.3], [0.25, -7.0, -2.0], [-0.1, -7.4, -1.6], [-0.65, -7.85, -1.5], [-1.05, -8.35, -1.75], [-1.35, -9.0, -2.05], [-1.5, -9.7, -2.25]] }; // asse nel solco davanti al soleo
-function soleoOriginale() {
-  const m0 = JSON.parse(H0.match(reManRe)[2]), b0 = Buffer.from(H0.match(reDatRe)[2].trim(), 'base64'), e = m0.meshes.findLast(x => x.n === 'sol');
+/* ============ Solchi nei muscoli (SCAVA) ============ */
+// Le mesh BodyParts3D dei muscoli sono a contatto tra loro e con le ossa, senza gli spazi (grasso, arcate, iati, tunnel)
+// in cui scorrono vasi e nervi: manca per esempio l'arcata tendinea del soleo. Dopo il calcolo dei decorsi, la mesh di
+// ogni muscolo elencato viene scavata lungo i tubi indicati (spostamento radiale dall'asse del tubo con raccordo dolce),
+// nell'intervallo verticale indicato. Si parte sempre dalla mesh originale, quindi lo script resta rilanciabile.
+const SCAVA = [
+  { m: 'sol', tubi: ['apop', 'vpop', 'ntib', 'atpost', 'vtpost', 'atant'], y: [-12, -4], dir: [0, 0, -1] }, // arcata del soleo
+  // capi del gastrocnemio e plantare scostati ai lati del fascio (nel vivo separati dal grasso della fossa)
+  { m: 'gmed', tubi: ['apop', 'vpop', 'ntib'], y: [-7, 3.5], dir: [1, 0, -0.3], max: 0.8 },
+  { m: 'glat', tubi: ['apop', 'vpop', 'ntib'], y: [-7, 3.5], dir: [-1, 0, -0.3], max: 0.8 },
+  { m: 'plant', tubi: ['apop', 'vpop', 'ntib'], y: [-7, 3.5], dir: [-1, 0, -0.3], max: 0.8 },
+  { m: 'tibpost', tubi: ['atant'], y: [-10.5, -6.5], dir: [0, -1, 0] },                                  // sopra la membrana interossea
+  { m: 'perlong', tubi: ['nper', 'nperS', 'nperP'], y: [-8.5, -4.6], da: [-3.7, -1.4], max: 0.7 },        // tunnel fibulare (tetto staccato dal collo del perone)
+  { m: 'extdig', tubi: ['nperP'], y: [-10, -5] },
+  { m: 'addmag', tubi: ['apop', 'vpop'], y: [10.5, 15] },                                               // iato degli adduttori
+];
+function meshOriginale(nome) {
+  const m0 = JSON.parse(H0.match(reManRe)[2]), b0 = Buffer.from(H0.match(reDatRe)[2].trim(), 'base64'), e = m0.meshes.findLast(x => x.n === nome);
   const q = new Uint16Array(b0.buffer.slice(b0.byteOffset + e.p, b0.byteOffset + e.p + e.nv * 6)), pos = new Float32Array(e.nv * 3);
   for (let i = 0; i < e.nv * 3; i++) { const k = i % 3; pos[i] = m0.min[k] + q[i] / 65535 * (m0.max[k] - m0.min[k]); } return pos;
 }
-{
-  const pos = soleoOriginale(), A = ARCATA.asse; let mosse = 0, mx = 0;
-  const dist = p => { let bd = Infinity, bq = null; for (let i = 1; i < A.length; i++) { const a = A[i - 1], b = A[i], ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], t = clamp(((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1] + (p[2] - a[2]) * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2), 0, 1), q = [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t], d = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); if (d < bd) { bd = d; bq = q; } } return [bd, bq]; };
-  for (let i = 0; i < pos.length; i += 3) { const p = [pos[i], pos[i + 1], pos[i + 2]], [d, q] = dist(p), R2 = ARCATA.r * 2.2; if (d >= R2) continue;
-    // spostamento radiale d → d + r(1 - d/R2)²: il canale ha raggio r, il raccordo è dolce (derivata 1 al bordo R2)
-    const f = ARCATA.r * (1 - d / R2) ** 2, dir = d > 1e-4 ? p.map((v, k) => (v - q[k]) / d) : [0, 0, -1];
-    for (let k = 0; k < 3; k++) pos[i + k] += dir[k] * f; mosse++; mx = Math.max(mx, f); }
-  setPos('sol', pos); log(`arcata del soleo: ${mosse} vertici spostati (max ${(mx * 10).toFixed(1)} mm)`);
+for (const S of SCAVA) setPos(S.m, meshOriginale(S.m)); // i decorsi si calcolano sulle mesh originali
+function scava() {
+  for (const S of SCAVA) {
+    const pos = meshOriginale(S.m), segs = [], F = new Float32Array(pos.length / 3), DIR = new Array(pos.length / 3);
+    for (const id of S.tubi) for (const t of correnti.get(id)) { const P = ricampiona(t.pts, 0.1); for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i], t.r + 0.06]); }
+    let mosse = 0, mx = 0;
+    for (let i = 0; i < pos.length; i += 3) {
+      const p = [pos[i], pos[i + 1], pos[i + 2]], w = sstep(S.y[0] - 0.6, S.y[0] + 0.4, p[1]) * (1 - sstep(S.y[1] - 0.4, S.y[1] + 0.6, p[1])); if (w <= 0) continue;
+      let best = 0, dir = null;
+      for (const [a, b, c] of segs) { const ab = sub(b, a), t = clamp(dot(sub(p, a), ab) / (dot(ab, ab) || 1), 0, 1), q = add(a, ab, t), v = sub(p, q), d = len(v);
+        if (S.dir || S.da) { // solco verso una direzione (o lontano dall'asse di un osso): la faccia del muscolo davanti al tubo
+          // arretra dietro di esso, formando un canale sulla faccia profonda
+          const u = S.dir ? nrm(S.dir) : nrm([p[0] - S.da[0], 0, p[2] - S.da[1]]), h = dot(v, u), lat = len(sub(v, u.map(x => x * h))); if (lat >= 1.6 * c || h < -1.6) continue;
+          const need = c * Math.cos(Math.PI / 2 * lat / (1.6 * c)), f = (need - h) * sstep(-1.6, -1.2, h); if (f > best) { best = f; dir = u; } continue; }
+        const R2 = 2.2 * c; if (d >= R2) continue; const f = c * (1 - d / R2) ** 2; if (f > best) { best = f; dir = d > 1e-4 ? v.map(x => x / d) : [0, 0, -1]; } }
+      if (!dir) continue; F[i / 3] = best * w; DIR[i / 3] = dir;
+    }
+    if (S.dir || S.da) { // solco direzionale: campo di spostamento dilatato e raccordato sulla mesh (bordi del canale lisci)
+      const { idx } = REAL(S.m), nb = Array.from({ length: F.length }, () => new Set());
+      for (let t = 0; t < idx.length; t += 3) for (let r = 0; r < 3; r++) { const a = idx[t + r], b = idx[t + (r + 1) % 3]; nb[a].add(b); nb[b].add(a); }
+      for (let it = 0; it < 8; it++) { const G0 = F.slice(); for (let i = 0; i < F.length; i++) { if (!nb[i].size) continue; let m = 0; for (const j of nb[i]) m += G0[j]; F[i] = Math.max(G0[i], 0.8 * m / nb[i].size); } }
+      for (let i = 0; i < F.length; i++) if (F[i] > 1e-4) DIR[i] = S.dir ? nrm(S.dir) : nrm([pos[3 * i] - S.da[0], 0, pos[3 * i + 2] - S.da[1]]);
+    }
+    if (S.max) for (let i = 0; i < F.length; i++) F[i] = S.max * Math.tanh(F[i] / S.max); // spostamento massimo (raccordato)
+    for (let i = 0; i < F.length; i++) { if (F[i] <= 1e-4) continue; for (let k = 0; k < 3; k++) pos[3 * i + k] += DIR[i][k] * F[i]; mosse++; mx = Math.max(mx, F[i]); }
+    setPos(S.m, pos); log(`solco in ${S.m}: ${mosse} vertici spostati (max ${(mx * 10).toFixed(1)} mm)`);
+  }
 }
+
+/* ============ Calibro ============ */
+// raccordo del calibro alle biforcazioni e ai rami: r0 raggio all'inizio del tubo, r1 alla fine (sfumano sui primi/ultimi
+// l0/l1 cm; il resto del tubo ha il raggio nominale). Letti dalla funzione tube() della pagina.
+const CALIBRI = {
+  nsci: { r1: 0.34, l1: 3 }, ntib: { r0: 0.34, l0: 2.5 }, nper: { r0: 0.28, l0: 2, r1: 0.17, l1: 1.5 }, nperS: { r0: 0.15, l0: 1.2 }, nperP: { r0: 0.15, l0: 1.2 },
+  apop: { r1: 0.25, l1: 2 }, atpost: { r0: 0.25, l0: 1.5, r1: 0.2, l1: 3 }, atant: { r0: 0.23, l0: 1.5 }, aper: { r0: 0.2, l0: 1.2 },
+  vpop: { r1: 0.25, l1: 3 }, vtpost: { r0: 0.25, l0: 2.5 }, vps: { r1: 0.23, l1: 1.2 },
+  nsurmed: { r0: 0.11, l0: 0.8 }, nsurlat: { r0: 0.11, l0: 0.8 }, ninfra: { r0: 0.09, l0: 0.8 }, aric: { r0: 0.11, l0: 0.8 },
+};
 
 /* ============ Tubi nel sorgente della pagina ============ */
 // tutti i tubi di una struttura: punti, raggio, posizione del testo dei punti
@@ -93,7 +133,7 @@ const vicino = (P, q) => { let bi = 0, bd = Infinity; P.forEach((p, i) => { cons
 const OSSA = ['femore', 'tibia', 'perone', 'rotula'];
 const MUSCOLI = ['retto', 'vint', 'vmed', 'vlat', 'sart', 'grac', 'semit', 'semim', 'biclong', 'bicbrev', 'addmag', 'gmed', 'glat', 'plant', 'pop', 'sol',
   'tibant', 'extdig', 'perlong', 'tibpost', 'fdl', 'fhl', 'ehl', 'perbrev'];
-const FIBROSE = ['itb', 'lcm', 'lcl', 'all', 'popfib', 'tenrot', 'tenquad', 'retmed', 'retlat', 'mpfl'];
+const FIBROSE = ['itb', 'lcm', 'lcl', 'all', 'popfib', 'popobl', 'tenrot', 'tenquad', 'retmed', 'retlat', 'mpfl'];
 const BORSE = ['bans', 'bgsm', 'bprep', 'binfsup'];
 const PROFONDE = [...OSSA, ...MUSCOLI, ...FIBROSE, ...BORSE]; // involucro sotto la fascia superficiale
 const pesi = n => OSSA.includes(n) ? 120 : FIBROSE.includes(n) ? 60 : 40;
@@ -104,29 +144,32 @@ const pesi = n => OSSA.includes(n) ? 120 : FIBROSE.includes(n) ? 60 : 40;
 // attacca: il tubo nasce dal tronco indicato (nel punto corrispondente a quello originale); attaccaFine: vi termina;
 // accompagna: resta a contatto del tubo indicato (vena satellite dell'arteria, nervo del fascio);
 // modo(y): 'sup' sottocutaneo, 'prof' sotto l'involucro dei muscoli, null libero; tunnel: {struttura: [yMin, yMax]}
-// attraversabile solo in quell'intervallo (iato degli adduttori, tunnel fibulare); R: raggio di ricerca (cm).
+// struttura che il tubo può incidere in quell'intervallo (penalità ridotta): dopo il calcolo la mesh viene scavata
+// lungo il tubo (SCAVA), così il tubo passa in un solco/canale e non attraversa il muscolo; R: raggio di ricerca (cm).
 const FOSSA = y => y < 11 && y > -7;
+const FORTE = y => y < 16 && y > -12 ? 12 : 1; // dal canale degli adduttori all'arcata del soleo il fascio segue la guida (ordine arteria-vena-nervo)
 const PERCORSI = [
   // arteria femorale → poplitea: nel canale degli adduttori sotto il sartorio, tra vasto mediale e adduttore magno;
   // attraversa lo iato degli adduttori, poi è la struttura più profonda della fossa poplitea, sulla faccia poplitea del
   // femore e sulla capsula; scende tra i capi del gastrocnemio sul popliteo e si divide al suo margine inferiore
-  { id: 'apop', R: 1.6, tunnel: { addmag: [11.2, 14.5] },
+  { id: 'apop', R: 1.2, liscio: 8, guidaPesi: FORTE, tunnel: { addmag: [11.2, 14.5], gmed: [-7, 3.5, 0.1], glat: [-7, 3.5, 0.1], plant: [-7, 3.5, 0.1], sol: [-12, -4, 0.03] },
     guida: [[2.6, 20.36, 3.75], [2.6, 18, 3.75], [2.4, 16, 3.35], [2.1, 14.2, 2.7], [1.95, 13, 1.5], [1.9, 12, 0.3], [1.4, 11, -0.35], [0.8, 10, -0.75],
-      [0.45, 9, -0.95], [0.3, 7, -1.25], [0.3, 5, -1.45], [0.2, 3, -2.3], [0.1, 1, -2.6], [0.0, -1, -2.6], [0.0, -2.5, -3.1], [-0.05, -4, -3.45],
-      [0.55, -5.5, -3.1], [0.45, -6.4, -2.55], [0.3, -7.0, -2.0]] },
+      [0.45, 9, -0.95], [0.3, 7, -1.25], [0.3, 5, -1.5], [0.25, 4, -2.0], [0.2, 3, -2.6], [0.15, 2, -3.55], [0.15, 1, -3.95], [0.1, 0, -3.95], [0.0, -1, -3.85],
+      [-0.15, -2, -3.6], [-0.2, -3, -3.6], [-0.2, -4, -3.65], [-0.2, -5, -3.55], [-0.3, -6, -3.3], [-0.4, -6.8, -3.1]] },
   // vena femorale → poplitea: satellite dell'arteria, posteriore (superficiale) ad essa nella fossa
-  { id: 'vpop', R: 1.6, accompagna: 'apop', tunnel: { addmag: [11.2, 14.5] },
-    guida: [[3.05, 20.54, 3.4], [3.0, 18, 3.35], [2.8, 16, 2.95], [2.45, 14.2, 2.25], [2.25, 13, 1.1], [2.1, 12, -0.1], [1.55, 11, -0.85], [0.95, 10, -1.3],
-      [0.6, 9, -1.55], [0.45, 7, -1.9], [0.45, 5, -2.15], [0.35, 3, -2.95], [0.25, 1, -3.25], [0.2, -1, -3.25], [0.25, -2.5, -3.7], [0.3, -4, -4.0],
-      [0.95, -5.5, -3.55], [0.85, -6.3, -3.0], [0.7, -6.9, -2.5]] },
+  { id: 'vpop', R: 1.2, liscio: 8, guidaPesi: FORTE, tunnel: { addmag: [11.2, 14.5], gmed: [-7, 3.5, 0.1], glat: [-7, 3.5, 0.1], plant: [-7, 3.5, 0.1], sol: [-12, -4, 0.03] },
+    guida: [[3.05, 20.54, 3.4], [3.0, 18, 3.35], [2.8, 16, 2.95], [2.45, 14.2, 2.25], [2.25, 13, 1.1], [2.1, 12, -0.1], [1.55, 11, -0.85], [0.95, 10, -1.35],
+      [0.6, 9, -1.7], [0.45, 7, -2.0], [0.45, 5, -2.25], [0.4, 4, -2.75], [0.35, 3, -3.35], [0.3, 2, -4.3], [0.3, 1, -4.7], [0.25, 0, -4.7], [0.15, -1, -4.6],
+      [0.05, -2, -4.35], [0.0, -3, -4.35], [0.0, -4, -4.4], [0.0, -5, -4.3], [-0.05, -6, -4.05], [-0.1, -6.7, -3.85]] },
   // nervo sciatico: profondo al capo lungo del bicipite, sulla faccia posteriore dell'adduttore magno; si divide
   // all'apice della fossa poplitea
   { id: 'nsci', R: 2.0, guida: [[0.55, 21.38, -0.55], [0.6, 18, -0.55], [0.6, 15, -0.6], [0.45, 13, -0.95], [0.2, 11.56, -1.55]] },
   // nervo tibiale: il più superficiale del fascio nella fossa; scende con i vasi sotto l'arcata del soleo e poi tra
   // soleo e tibiale posteriore
-  { id: 'ntib', R: 1.6, liscio: 2, attacca: 'nsci', accompagna: 'vpop', vicino: FOSSA,
-    guida: [[0.2, 11.56, -1.55], [0.2, 10, -2.0], [0.25, 8, -2.45], [0.3, 6, -2.8], [0.35, 4, -3.4], [0.4, 2, -3.6], [0.45, 0, -3.8], [0.5, -2, -4.05],
-      [0.55, -4, -4.2], [0.75, -5.5, -3.75], [0.8, -6.5, -3.1], [0.55, -7.0, -2.55], [0.15, -7.45, -1.9], [-0.45, -7.9, -1.85], [-1.0, -8.4, -2.1], [-1.45, -9.1, -2.4], [-1.8, -10.1, -2.45], [-1.99, -11.2, -2.45], [-2.0, -12, -2.47]] },
+  { id: 'ntib', R: 1.2, liscio: 6, guidaPesi: FORTE, attacca: 'nsci', tunnel: { addmag: [11.2, 14.5], gmed: [-7, 3.5, 0.1], glat: [-7, 3.5, 0.1], plant: [-7, 3.5, 0.1], sol: [-12, -4, 0.03] },
+    guida: [[0.2, 11.56, -1.55], [0.2, 10, -2.0], [0.1, 8, -2.4], [-0.2, 6, -2.3], [-0.35, 4, -2.6], [-0.4, 3, -3.2], [-0.45, 2, -4.15], [-0.45, 1, -4.55],
+      [-0.5, 0, -4.55], [-0.6, -1, -4.45], [-0.75, -2, -4.2], [-0.8, -3, -4.2], [-0.8, -4, -4.25], [-0.8, -5, -4.15], [-0.9, -6, -3.9], [-1.1, -7, -3.6],
+      [-1.35, -8, -3.25], [-1.6, -9, -2.95], [-1.85, -10, -2.65], [-2.0, -11, -2.45], [-1.99, -12, -2.47]] },
   // nervo peroneo comune: lungo il margine mediale del bicipite, dietro la testa del perone e attorno al collo;
   // la divisione è profonda al peroneo lungo, sull'osso (tunnel fibulare)
   { id: 'nper', R: 1.6, attacca: 'nsci', modo: y => y < -5.3 ? 'prof' : null, prof: 0.3, tunnel: { perlong: [-9, 0] },
@@ -135,8 +178,8 @@ const PERCORSI = [
   { id: 'nsurlat', attacca: 'nper', modo: y => y > 1.5 ? null : 'sup' }, // perfora la fascia sopra il capo laterale del gastrocnemio
   // nel setto tra peroneo lungo ed estensore lungo delle dita (i due muscoli poggiano sul perone senza spazio: il nervo
   // segue il solco tra i due, senza attraversarne i ventri)
-  { id: 'nperS', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-6.6, 0] } },
-  { id: 'nperP', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-6.6, 0] } },
+  { id: 'nperS', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-8, 0] } },
+  { id: 'nperP', attacca: 'nper', modo: () => 'prof', prof: 0.35, tunnel: { perlong: [-8, 0], extdig: [-9.5, -5.5] } },
   // nervo cutaneo surale mediale e piccola safena: tra i capi del gastrocnemio, poi sottofasciali sul polpaccio
   { id: 'nsurmed', attacca: 'ntib', modo: y => y < -3 ? 'sup' : null },
   { id: 'vps', attaccaFine: 'vpop', modo: y => y < -3 ? 'sup' : null },
@@ -146,13 +189,13 @@ const PERCORSI = [
   { id: 'adisc', attacca: 'apop' },
   // tibiale anteriore: passa sopra il margine superiore della membrana interossea tra tibia e perone e scende nella
   // loggia anteriore sulla membrana, tra tibiale anteriore ed estensore lungo delle dita
-  { id: 'atant', attacca: 'apop', tunnel: { tibpost: [-9.5, -6] }, guida: [[0.3, -7.0, -2.0], [0.0, -7.45, -1.3], [-0.7, -7.9, -1.0], [-1.5, -8.4, -0.5], [-2.3, -9.1, -0.05], [-2.76, -10.26, 0.06]] },
+  { id: 'atant', attacca: 'apop', tunnel: { tibpost: [-10.5, -6.5, 0.05], sol: [-9, -5, 0.03] }, guida: [[-0.4, -6.8, -3.1], [-0.8, -7.4, -2.6], [-1.4, -8, -1.9], [-2.0, -8.6, -1.0], [-2.45, -9.2, -0.35], [-2.76, -10.26, 0.06]] },
   { id: 'aric', attacca: 'atant' },
   // tibiale posteriore e vene satelliti: tra tibiale posteriore e soleo (niente scatti laterali sotto l'arcata del soleo)
-  { id: 'atpost', attacca: 'apop', guida: [[0.3, -7.0, -2.0], [0.0, -7.45, -1.35], [-0.6, -7.9, -1.45], [-1.1, -8.5, -1.75], [-1.35, -9.3, -2.0], [-1.5, -10.2, -2.2], [-1.56, -11, -2.28]] },
-  { id: 'vtpost', attacca: 'vpop', accompagna: 'atpost', guida: [[0.7, -6.9, -2.5], [0.25, -7.5, -1.55], [-0.4, -8.0, -1.7], [-0.85, -8.6, -1.95], [-1.05, -9.4, -2.2], [-1.2, -10.2, -2.3], [-1.26, -11, -2.4]] },
+  { id: 'atpost', attacca: 'apop', tunnel: { sol: [-12, -5, 0.03] }, guida: [[-0.4, -6.8, -3.1], [-0.75, -8, -2.85], [-1.1, -9, -2.6], [-1.4, -10, -2.38], [-1.56, -11, -2.28], [-1.54, -12, -2.32]] },
+  { id: 'vtpost', attacca: 'vpop', accompagna: 'atpost', tunnel: { sol: [-12, -5, 0.03] }, guida: [[-0.1, -6.7, -3.85], [-0.45, -8, -3.25], [-0.8, -9, -2.75], [-1.1, -10, -2.5], [-1.26, -11, -2.4], [-1.24, -12, -2.44]] },
   // peroniera: nasce dalla tibiale posteriore e scende lungo il perone con una curva dolce
-  { id: 'aper', attacca: 'atpost', guida: [[-1.35, -9.3, -2.0], [-1.9, -10.1, -1.95], [-2.45, -11, -1.88], [-2.7, -12, -1.85], [-2.77, -13, -1.87]] },
+  { id: 'aper', attacca: 'atpost', guida: [[-1.2, -9.3, -2.5], [-1.8, -10.1, -2.1], [-2.4, -11, -1.9], [-2.7, -12, -1.85], [-2.77, -13, -1.87]] },
   // grande safena: sottocutanea, dietro il condilo mediale e superficiale alla zampa d'oca
   { id: 'vgs', modo: () => 'sup', ignora: ['nsaf', 'ninfra'], liscio: 2,
     guida: [[5.9, 9, 0.0], [5.85, 7, 0.15], [5.8, 5, 0.1], [5.8, 3, -0.1], [5.75, 1, -0.35], [5.45, -1, -0.65], [4.7, -3, -0.75]] },
@@ -234,7 +277,7 @@ function campi(P, g, r, R) {
   const Eo = edt(C), Ei = edt(C, true), E = new Float32Array(G.N); for (let i = 0; i < G.N; i++) E[i] = Eo[i] - Ei[i];
   const K = edt(solid('cute'), true);
   // penalità totale in un punto (strutture, tunnel fuori dal proprio intervallo)
-  const pen = (x, y, z) => { let v = sample(Pen, x, y, z); for (const n in PenT) { const [a, b] = tun[n]; if (y < a || y > b) v += sample(PenT[n], x, y, z); } return v; };
+  const pen = (x, y, z) => { let v = sample(Pen, x, y, z); for (const n in PenT) { const [a, b, wt = 0.35] = tun[n], w = y < a || y > b ? 1 : wt; v += w * sample(PenT[n], x, y, z); } return v; };
   return { pen, E, K, Dmin, tun };
 }
 
@@ -270,7 +313,7 @@ function instrada(P) {
     if (comp && vicino(y)) { let dv = Infinity; const b0 = Math.floor(y / 0.5); for (let b = b0 - 2; b <= b0 + 2; b++) for (const q of compB.get(b) || []) dv = Math.min(dv, Math.hypot(x - q[0], y - q[1], z - q[2])); if (dv < Infinity) v += 10 * Math.max(0, dv - (r + rc + 0.2)) ** 2; }
     return v;
   };
-  const costo = (k, c) => { const p = punto(k, c), o2 = (C[c][0] ** 2 + C[c][1] ** 2) * HC * HC; return F.pen(...p) + 0.3 * o2 + extra(p); };
+  const costo = (k, c) => { const p = punto(k, c), o2 = (C[c][0] ** 2 + C[c][1] ** 2) * HC * HC; return F.pen(...p) + 0.3 * (P.guidaPesi ? P.guidaPesi(p[1]) : 1) * o2 + extra(p); };
   const nc = C.length, zero = idx.get('0,0'), fissoI = P.fissoInizio || P.attacca, fissoF = P.fissoFine || P.attaccaFine;
   let cur = new Float64Array(nc).fill(Infinity), back = [];
   if (fissoI) cur[zero] = 0; else for (let c = 0; c < nc; c++) cur[c] = costo(0, c);
@@ -290,7 +333,8 @@ function instrada(P) {
     // solo se il ramo parte nella stessa direzione del tronco (biforcazione); i rami ad angolo (genicolari) no, o farebbero un'ansa
     const dt = nrm(sub(tr[Math.min(tr.length - 1, bi + 1)], tr[Math.max(0, bi - 1)])), db = nrm(sub(path[Math.min(n - 1, 8)], path[0]));
     if (bi > 0 && dot(dt, db) > 0.5) pre = tr[bi - 1]; }
-  path = elastica(path, p => F.pen(...p) + extra(p), Ux, Vx, 20 * (P.liscio || 1), pre); // estremi fermi (aggancio o punto scelto dalla ricerca)
+  const gp = y => 0.3 * (P.guidaPesi ? P.guidaPesi(y) : 1); // anche la banda elastica resta legata alla guida
+  path = elastica(path, (p, k) => F.pen(...p) + extra(p) + gp(p[1]) * (dot(sub(p, S[k]), Ux[k]) ** 2 + dot(sub(p, S[k]), Vx[k]) ** 2), Ux, Vx, 20 * (P.liscio || 1), pre); // estremi fermi (aggancio o punto scelto dalla ricerca)
   if (process.env.DEBUG) log(`  dopo elastica: n ${path.length}, y ${path.filter((_, k) => k % 8 === 0).map(p => p[1].toFixed(1)).join(' ')}`);
   const out = path.filter((_, k) => k % 2 === 0 || k === n - 1);
   // verifica: compenetrazione del tubo (raggio r) nelle strutture da evitare (tunnel esclusi nel loro intervallo), in mm
@@ -314,8 +358,8 @@ function elastica(P, f, U, V, lam = 20, pre = null) {
       for (let q = 0; q < 3; q++) { Fz[k - 1][q] -= lam * d[q]; Fz[k][q] += 2 * lam * d[q]; Fz[k + 1][q] -= lam * d[q]; } }
     let mx = 0;
     for (let k = 1; k < n - 1; k++) {
-      const pu = t => add(Q[k], U[k], t), pv = t => add(Q[k], V[k], t), v = f(Q[k]);
-      const gu = v > 1e-4 ? 2 * (f(pu(e)) - f(pu(-e))) / (2 * e) : 0, gv = v > 1e-4 ? 2 * (f(pv(e)) - f(pv(-e))) / (2 * e) : 0;
+      const pu = t => add(Q[k], U[k], t), pv = t => add(Q[k], V[k], t), v = f(Q[k], k);
+      const gu = v > 1e-4 ? 2 * (f(pu(e), k) - f(pu(-e), k)) / (2 * e) : 0, gv = v > 1e-4 ? 2 * (f(pv(e), k) - f(pv(-e), k)) / (2 * e) : 0;
       const h = 0.05 / lam, su = h * (dot(Fz[k], U[k]) - gu), sv = h * (dot(Fz[k], V[k]) - gv), sl = Math.hypot(su, sv), c = sl > 0.01 ? 0.01 / sl : 1;
       for (let q = 0; q < 3; q++) Q[k][q] += (U[k][q] * su + V[k][q] * sv) * c; mx = Math.max(mx, sl * c); }
     if (mx < 5e-6) break;
@@ -328,6 +372,11 @@ const SOLO = process.env.SOLO ? process.env.SOLO.split(',') : null; // per le pr
 for (const P of PERCORSI) { if (SOLO && !SOLO.includes(chiave(P))) continue; const out = instrada(P); nuovi.push([P, out]); const L = correnti.get(P.id); L[P.t || 0] = { pts: out, r: L[P.t || 0].r }; }
 if (PROVA) process.exit(0);
 let html = M.html;
-const sostituzioni = nuovi.map(([P, pts]) => ({ ...tubo0(html, P), pts })).sort((a, b) => b.a - a.a);
-for (const s of sostituzioni) html = html.slice(0, s.a) + JSON.stringify(s.pts.map(p => p.map(v => +v.toFixed(2)))) + html.slice(s.b);
-M.html = html; saveFile(repack()); // tubi nuovi e soleo con l'arcata
+const sostituzioni = nuovi.map(([P, pts]) => ({ ...tubo0(html, P), id: P.id, pts })).sort((a, b) => b.a - a.a);
+for (const t of sostituzioni) {
+  const coda = html.slice(t.b).match(/^,([\d.]+)(?:,\{([^}]*)\})?\)/), opz = (coda[2] || '').split(',').filter(x => x && !/^(r0|r1|l0|l1):/.test(x));
+  const c = CALIBRI[t.id] || {}; for (const k of ['r0', 'l0', 'r1', 'l1']) if (c[k] !== undefined) opz.push(`${k}:${c[k]}`);
+  html = html.slice(0, t.a) + JSON.stringify(t.pts.map(p => p.map(v => +v.toFixed(2)))) + `,${coda[1]}${opz.length ? ',{' + opz.join(',') + '}' : ''})` + html.slice(t.b + coda[0].length);
+}
+scava();
+M.html = html; saveFile(repack()); // tubi nuovi e muscoli con i solchi
