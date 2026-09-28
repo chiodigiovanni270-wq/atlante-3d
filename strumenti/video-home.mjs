@@ -7,7 +7,8 @@
 
    Esempio:
      node strumenti/video-home.mjs ginocchio-3d
-     → salva assets/video/ginocchio-3d.mp4 (H.264, senza audio) e assets/video/ginocchio-3d.jpg (primo fotogramma,
+     → salva assets/video/ginocchio-3d.mp4 (H.264, per Safari, Chrome, Edge, Firefox), assets/video/ginocchio-3d.webm
+       (VP9, riserva per i browser senza H.264) e assets/video/ginocchio-3d.jpg (primo fotogramma,
        usato come poster e come immagine fissa per chi ha attivo "riduci movimento")
 
    Opzioni:
@@ -25,7 +26,7 @@
    comune dei modelli), cattura il canvas a ogni fotogramma e compone il JPEG; ffmpeg monta il video.
    Il file del modello non viene modificato.
 
-   Requisiti: Node 22 o successivo, Chrome (vedi lib-chrome.mjs), ffmpeg con libx264
+   Requisiti: Node 22 o successivo, Chrome (vedi lib-chrome.mjs), ffmpeg con libx264 e libvpx-vp9
    (macOS: brew install ffmpeg; percorso alternativo nella variabile FFMPEG). */
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, mkdtempSync, rmSync, statSync, copyFileSync } from 'node:fs';
@@ -53,7 +54,7 @@ const N = prova ? 1 : Math.round(GIRO / passo);
 
 const dir = join(ROOT, 'assets', 'video');
 mkdirSync(dir, { recursive: true });
-const outVideo = join(dir, `${name}.mp4`), outPoster = join(dir, `${name}.jpg`);
+const outVideo = join(dir, `${name}.mp4`), outWebm = join(dir, `${name}.webm`), outPoster = join(dir, `${name}.jpg`);
 
 if (!prova && spawnSync(FFMPEG, ['-version']).status !== 0) {
   console.error(`ffmpeg non trovato ("${FFMPEG}"): installalo (macOS: brew install ffmpeg) o indica il percorso nella variabile FFMPEG.`);
@@ -90,9 +91,15 @@ try {
       '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
       '-movflags', '+faststart', '-an', join(tmp, 'out.mp4')], { stdio: 'inherit' });
     if (ff.status !== 0) throw new Error('ffmpeg non è riuscito a creare il video');
+    const fw = spawnSync(FFMPEG, ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(tmp, 'f%04d.jpg'),
+      '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '38', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2',
+      '-pix_fmt', 'yuv420p', '-an', join(tmp, 'out.webm')], { stdio: 'inherit' });
+    if (fw.status !== 0) throw new Error('ffmpeg non è riuscito a creare il video WebM');
     copyFileSync(join(tmp, 'out.mp4'), outVideo);
-    console.log(`Salvato ${relative(process.cwd(), outVideo)} (${W}×${H}, ${N} fotogrammi a ${fps} fps, ` +
-      `${Math.round(statSync(outVideo).size / 1024)} KB)`);
+    copyFileSync(join(tmp, 'out.webm'), outWebm);
+    for (const f of [outVideo, outWebm])
+      console.log(`Salvato ${relative(process.cwd(), f)} (${W}×${H}, ${N} fotogrammi a ${fps} fps, ` +
+        `${Math.round(statSync(f).size / 1024)} KB)`);
   }
 } finally {
   await chrome.chiudi();

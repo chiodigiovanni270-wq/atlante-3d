@@ -44,7 +44,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 ## Anteprime e video della homepage
 - Dopo ogni modifica a un modello rigenerare la sua anteprima (`strumenti/anteprima.mjs`) e, per il ginocchio,
   il video della prima schermata: `node strumenti/video-home.mjs ginocchio-3d --dist=1.5`
-  (salva `assets/video/ginocchio-3d.mp4` e il poster `.jpg`; richiede ffmpeg). Il video rispetta "riduci movimento".
+  (salva `assets/video/ginocchio-3d.mp4`, `.webm` e il poster `.jpg`; richiede ffmpeg). Il video rispetta "riduci movimento".
 
 ## Modo di lavorare
 - Prima di modifiche ampie, proponi un piano e attendi conferma.

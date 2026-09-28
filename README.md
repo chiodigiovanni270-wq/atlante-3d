@@ -13,7 +13,7 @@ modelli/<nome>-3d.html     un file autocontenuto per modello (three.js r128 da C
 assets/nav.js              header comune dei modelli: link alla home, disclaimer, pannello "i" con i crediti
 assets/favicon.svg
 assets/anteprime/          immagini 1600×1000 delle card
-assets/video/              video della prima schermata (MP4) e relativo poster
+assets/video/              video della prima schermata (MP4 e WebM) e relativo poster
 strumenti/anteprima.mjs    genera le anteprime (non pubblicato sul sito)
 strumenti/video-home.mjs   genera il video della prima schermata (non pubblicato sul sito)
 strumenti/lib-chrome.mjs   funzioni comuni ai due script (Chrome headless)
@@ -79,10 +79,11 @@ al modello va rigenerato, con il server locale attivo:
 node strumenti/video-home.mjs ginocchio-3d --dist=1.5
 ```
 
-Salva `assets/video/ginocchio-3d.mp4` (H.264, senza audio, ~15 s) e `assets/video/ginocchio-3d.jpg`
+Salva `assets/video/ginocchio-3d.mp4` (H.264, senza audio, ~15 s), `assets/video/ginocchio-3d.webm`
+(VP9, riserva per i browser senza H.264) e `assets/video/ginocchio-3d.jpg`
 (primo fotogramma: poster e immagine fissa per chi ha attivo "riduci movimento"). Richiede anche ffmpeg
 (`brew install ffmpeg`). Opzioni e dettagli in testa allo script; `--prova` salva solo il primo fotogramma.
-Per usare un altro modello basta cambiare il nome nello script e i due percorsi del `<video>` in `index.html`.
+Per usare un altro modello basta cambiare il nome nel comando e i percorsi del `<video>` in `index.html`.
 
 ## Pubblicazione
 
