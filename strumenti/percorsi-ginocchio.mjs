@@ -1,7 +1,7 @@
 /* Decorso di arterie, vene e nervi del ginocchio (tubi procedurali in modelli/ginocchio-3d.html) negli spazi tra i
    muscoli, senza attraversare ossa, muscoli, tendini o legamenti e senza curve innaturali.
 
-   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs, capsula-ginocchio.mjs e borse-ginocchio.mjs):
+   Uso (dalla cartella del progetto, dopo stratifica-ginocchio.mjs, capsula-ginocchio.mjs, cute-ginocchio.mjs e borse-ginocchio.mjs):
      node strumenti/percorsi-ginocchio.mjs [--prova]
    Con --prova stampa solo le verifiche, senza modificare il file. Guide e soleo di partenza vengono dalla revisione git
    ORIGINALE, quindi lo script si può rilanciare. Per le prove: SOLO=id1,id2 (solo alcuni tubi), DEBUG=1.
@@ -319,8 +319,10 @@ const PERCORSI = [
   { id: 'agen', t: 0, attacca: 'apop', da: [0.3, 5.8, -1.3], guida: [[0.3, 5.8, -1.3], [1.0, 6.1, -1.1], [1.8, 6.2, -0.8], [2.6, 6.0, -0.55], [3.3, 5.4, -0.35],
     [3.8, 4.6, -0.1], [3.92, 3.7, 0.27], [3.65, 3.38, 0.72], [3.42, 3.15, 1.13], [3.28, 2.82, 1.48], [3.11, 2.44, 1.77], [2.97, 2.18, 2.14], [2.88, 2.03, 2.6]] },
   { id: 'agen', t: 1, attacca: 'apop' },
+  // inferiore mediale: sotto il condilo tibiale, profonda al LCM, poi in avanti sull'osso fino al margine mediale del
+  // tendine rotuleo (finisce sulla tibia, non nel sottocute)
   { id: 'agen', t: 2, attacca: 'apop', da: [0.1, -1.9, -3.75], guida: [[0.1, -1.9, -3.75], [1.0, -2.2, -3.35], [2.0, -2.55, -2.95], [2.95, -2.8, -2.5],
-    [3.6, -2.9, -1.8], [3.85, -2.9, -1.0], [3.7, -2.9, -0.2], [3.3, -2.95, 0.6], [2.7, -3.0, 1.4], [2.1, -3.15, 2.2], [1.85, -3.44, 3.1]] },
+    [3.6, -2.9, -1.8], [3.85, -2.9, -1.0], [3.7, -2.9, -0.2], [3.3, -2.95, 0.6], [2.7, -3.0, 1.3], [2.1, -3.15, 1.8], [1.4, -3.35, 2.25]] },
   { id: 'agen', t: 3, attacca: 'apop' },
   { id: 'adisc', attacca: 'apop' },
   // tibiale anteriore: passa sopra il margine superiore della membrana interossea tra tibia e perone e scende nella
