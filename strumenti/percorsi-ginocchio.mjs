@@ -22,6 +22,10 @@
      gracile. Nervo safeno nel canale degli adduttori e poi profondo al sartorio; perfora la fascia tra i tendini di
      sartorio e gracile (non dietro il gracile) e scende sottocutaneo con la grande safena. Il ramo infrarotuleo curva in
      avanti sotto la rotula.
+   - Arterie genicolari fuori dalla capsula: le superiori girano attorno al femore sopra i condili (la mediale sopra
+     l'origine del capo mediale del gastrocnemio, davanti al semimembranoso e dietro il tendine dell'adduttore magno), le
+     inferiori lungo il margine superiore del popliteo, profonde ai capi del gastrocnemio e poi ai legamenti collaterali.
+     Le surali entrano nella faccia profonda dei capi del gastrocnemio.
 
    Metodo: la linea guida di ogni tubo (originale, con punti di passaggio anatomici; i rami partono dal tronco) è una
    curva dolce campionata ogni 2,5 mm. In ogni sezione (orizzontale per i tubi che scendono, altrimenti perpendicolare
@@ -63,6 +67,12 @@ const SCAVA = [
   { m: 'perlong', fine: [{ tubi: ['nper', 'nperS', 'nperP'], y: [-21, -3.8] }] },
   { m: 'extdig', fine: [{ tubi: ['nperP', 'nperS'], y: [-21, -5.2] }] },
   { m: 'addmag', tubi: ['apop', 'vpop'], y: [10.5, 15] },                                               // iato degli adduttori
+  // rami articolari a ridosso della capsula: la faccia profonda dei muscoli che li coprono si incava sopra l'arteria
+  // (genicolari superiori sotto semimembranoso e capo mediale del gastrocnemio, inferiori sotto il gastrocnemio e sul
+  // margine del popliteo, discendente sotto l'adduttore magno)
+  { m: 'gmed', fine: [{ tubi: ['agen'], y: [-3.6, 6.8] }] },
+  { m: 'pop', fine: [{ tubi: ['agen'], y: [-2.2, 0.2] }] },
+  { m: 'addmag', fine: [{ tubi: ['adisc', 'agen'], y: [3.5, 8.5] }] },
 ];
 const M0 = JSON.parse(H0.match(reManRe)[2]), B0 = Buffer.from(H0.match(reDatRe)[2].trim(), 'base64');
 const vista = (T, off, n) => new T(B0.buffer.slice(B0.byteOffset + off, B0.byteOffset + off + n * T.BYTES_PER_ELEMENT));
@@ -151,7 +161,7 @@ function scava() {
     log(`canale in ${S.m}: mesh ${nv0} → ${m.pos.length / 3} vertici, ${mosse} spostati (max ${(mx * 10).toFixed(1)} mm)`);
   }
   for (const S of SCAVA.filter(S => !S.fine)) {
-    const pos = meshOriginale(S.m), segs = [], F = new Float32Array(pos.length / 3), DIR = new Array(pos.length / 3);
+    const pos = Float32Array.from(REAL(S.m).pos), segs = [], F = new Float32Array(pos.length / 3), DIR = new Array(pos.length / 3); // mesh originale (o già raffinata dal canale fine)
     for (const id of S.tubi) for (const t of correnti.get(id)) { const P = ricampiona(t.pts, 0.1); for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i], t.r + 0.06]); }
     let mosse = 0, mx = 0;
     for (let i = 0; i < pos.length; i += 3) {
@@ -221,6 +231,34 @@ const FIBROSE = ['itb', 'lcm', 'lcl', 'all', 'popfib', 'popobl', 'tenrot', 'tenq
 const BORSE = ['bans', 'bgsm', 'bprep', 'binfsup'];
 const PROFONDE = [...OSSA, ...MUSCOLI, ...FIBROSE, ...BORSE]; // involucro sotto la fascia superficiale
 const pesi = n => OSSA.includes(n) ? 120 : FIBROSE.includes(n) ? 60 : 40;
+// rami articolari (genicolari, discendente) e surali: fuori dalla capsula articolare, che è un manicotto aperto inserito
+// sulle ossa. L'interno si ricava una volta sola (griglia di 1 mm sull'ingombro della capsula): superficie della capsula
+// ispessita + femore, tibia e rotula fanno da barriera, e ciò che non si raggiunge dal bordo della griglia è intra-articolare
+const EXTRACAPSULARI = ['asur', 'agen', 'adisc'];
+let CAPS = null;
+function campoCapsula() {
+  if (CAPS) return CAPS;
+  const { pos } = REAL('capsula'), lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < pos.length; i++) { const k = i % 3; lo[k] = Math.min(lo[k], pos[i]); hi[k] = Math.max(hi[k], pos[i]); }
+  const o = lo.map(v => v - 1), h = 0.1, nx = Math.ceil((hi[0] - lo[0] + 2) / h), ny = Math.ceil((hi[1] - lo[1] + 2) / h), nz = Math.ceil((hi[2] - lo[2] + 2) / h);
+  setGriglia(o, h, nx, ny, nz);
+  const B = solid('capsula', true), Db = edt(B); for (let i = 0; i < G.N; i++) B[i] = Db[i] <= 0.1 ? 1 : 0;
+  for (const n of ['femore', 'tibia', 'rotula']) { const S = solid(n); for (let i = 0; i < G.N; i++) B[i] |= S[i]; }
+  const fuori = new Uint8Array(G.N), coda = [], entra = i => { if (!B[i] && !fuori[i]) { fuori[i] = 1; coda.push(i); } };
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (!i || !j || !k || i === nx - 1 || j === ny - 1 || k === nz - 1) entra(G.vi(i, j, k));
+  while (coda.length) { const v = coda.pop(), i = v % nx, j = ((v / nx) | 0) % ny, k = (v / G.NXY) | 0;
+    if (i > 0) entra(v - 1); if (i < nx - 1) entra(v + 1); if (j > 0) entra(v - nx); if (j < ny - 1) entra(v + nx); if (k > 0) entra(v - G.NXY); if (k < nz - 1) entra(v + G.NXY); }
+  const R = new Uint8Array(G.N); for (let i = 0; i < G.N; i++) R[i] = fuori[i] ? 0 : 1;
+  const Do = edt(R), Di = edt(R, true), F = new Float32Array(G.N); for (let i = 0; i < G.N; i++) F[i] = Do[i] - Di[i];
+  return CAPS = { o, h, nx, ny, nz, F };
+}
+// distanza con segno dalla capsula (positiva fuori), trilineare; lontano dalla capsula: grande
+function distCapsula(x, y, z) {
+  const { o, h, nx, ny, nz, F } = CAPS; let fx = (x - o[0]) / h - 0.5, fy = (y - o[1]) / h - 0.5, fz = (z - o[2]) / h - 0.5;
+  if (fx < 0 || fy < 0 || fz < 0 || fx > nx - 1.001 || fy > ny - 1.001 || fz > nz - 1.001) return 10;
+  const i = fx | 0, j = fy | 0, k = fz | 0, u = fx - i, v = fy - j, w = fz - k, b = i + nx * j + nx * ny * k, a = nx, c = nx * ny, l = (p, q, t) => p + (q - p) * t;
+  return l(l(l(F[b], F[b + 1], u), l(F[b + a], F[b + a + 1], u), v), l(l(F[b + c], F[b + c + 1], u), l(F[b + c + a], F[b + c + a + 1], u), v), w);
+}
 
 /* ============ Percorsi ============ */
 // Ogni voce: id (e t, indice del tubo nella struttura, per le strutture con più tubi).
@@ -270,8 +308,20 @@ const PERCORSI = [
   { id: 'nsurmed', attacca: 'ntib', modo: y => y < -3 ? 'sup' : null },
   { id: 'vps', attaccaFine: 'vpop', modo: y => y < -3 ? 'sup' : null },
   // arterie surali, genicolari e discendente: rami dei vasi principali, a ridosso di ossa e capsula
-  { id: 'asur', t: 0, attacca: 'apop' }, { id: 'asur', t: 1, attacca: 'apop' },
-  { id: 'agen', t: 0, attacca: 'apop' }, { id: 'agen', t: 1, attacca: 'apop' }, { id: 'agen', t: 2, attacca: 'apop' }, { id: 'agen', t: 3, attacca: 'apop' },
+  // (da: punto del tronco da cui nasce il ramo). Surale mediale: dalla poplitea all'altezza dei condili, indietro e in
+  // dentro fino alla faccia profonda del capo mediale del gastrocnemio (non davanti alla poplitea, nel legamento popliteo obliquo)
+  { id: 'asur', t: 0, attacca: 'apop', da: [0.15, 0.6, -3.95], guida: [[0.15, 0.6, -3.95], [0.5, 0.2, -4.15], [0.85, -0.3, -4.3], [1.1, -0.8, -4.35]] },
+  { id: 'asur', t: 1, attacca: 'apop' },
+  // genicolari superiori: attorno al femore sopra i condili, profonde a semimembranoso e bicipite; inferiori: lungo il
+  // margine superiore del popliteo, profonde ai capi del gastrocnemio, poi sotto i legamenti collaterali (Gray's, 42ª ed.)
+  // superiore mediale: sopra l'origine del capo mediale del gastrocnemio, davanti al semimembranoso e dietro il tendine
+  // dell'adduttore magno, poi in avanti attorno al condilo
+  { id: 'agen', t: 0, attacca: 'apop', da: [0.3, 5.8, -1.3], guida: [[0.3, 5.8, -1.3], [1.0, 6.1, -1.1], [1.8, 6.2, -0.8], [2.6, 6.0, -0.55], [3.3, 5.4, -0.35],
+    [3.8, 4.6, -0.1], [3.92, 3.7, 0.27], [3.65, 3.38, 0.72], [3.42, 3.15, 1.13], [3.28, 2.82, 1.48], [3.11, 2.44, 1.77], [2.97, 2.18, 2.14], [2.88, 2.03, 2.6]] },
+  { id: 'agen', t: 1, attacca: 'apop' },
+  { id: 'agen', t: 2, attacca: 'apop', da: [0.1, -1.9, -3.75], guida: [[0.1, -1.9, -3.75], [1.0, -2.2, -3.35], [2.0, -2.55, -2.95], [2.95, -2.8, -2.5],
+    [3.6, -2.9, -1.8], [3.85, -2.9, -1.0], [3.7, -2.9, -0.2], [3.3, -2.95, 0.6], [2.7, -3.0, 1.4], [2.1, -3.15, 2.2], [1.85, -3.44, 3.1]] },
+  { id: 'agen', t: 3, attacca: 'apop' },
   { id: 'adisc', attacca: 'apop' },
   // tibiale anteriore: passa sopra il margine superiore della membrana interossea tra tibia e perone e scende nella
   // loggia anteriore sulla membrana, tra tibiale anteriore ed estensore lungo delle dita
@@ -309,7 +359,7 @@ function guida(P) {
     const orig = tubi(H0, tronco)[0].pts, nuovo = ricampiona(correnti.get(tronco)[0].pts, 0.05);
     if (len(sub(orig.at(-1), q0)) < 0.05) return nuovo.at(-1).slice(); if (len(sub(orig[0], q0)) < 0.05) return nuovo[0].slice();
     let b = nuovo[0], bd = Infinity; for (const p of nuovo) { const d = 4 * Math.abs(p[1] - q0[1]) + Math.hypot(p[0] - q0[0], p[2] - q0[2]); if (d < bd) { bd = d; b = p; } } return b.slice(); };
-  if (P.attacca) g[0] = aggancio(P.attacca, tubo0(H0, P).pts[0]);
+  if (P.attacca) g[0] = aggancio(P.attacca, P.da || tubo0(H0, P).pts[0]);
   if (P.attaccaFine) g[g.length - 1] = aggancio(P.attaccaFine, tubo0(H0, P).pts.at(-1));
   return leviga(curva(g), P.leviga ?? 120);
 }
@@ -336,6 +386,7 @@ const dentro = (n, lo, hi) => { if (!BB.has(n)) { const { pos } = REAL(n), a = [
   for (let i = 0; i < pos.length; i++) { const k = i % 3; a[k] = Math.min(a[k], pos[i]); b[k] = Math.max(b[k], pos[i]); } BB.set(n, [a, b]); }
   const [a, b] = BB.get(n); return [0, 1, 2].every(k => b[k] > lo[k] && a[k] < hi[k]); };
 function campi(P, g, r, R) {
+  if (EXTRACAPSULARI.includes(P.id)) campoCapsula(); // prima di fissare la griglia locale
   const lo = [0, 1, 2].map(k => Math.min(...g.map(p => p[k])) - R - 1.2), hi = [0, 1, 2].map(k => Math.max(...g.map(p => p[k])) + R + 1.2);
   setGriglia(lo, 0.1, Math.ceil((hi[0] - lo[0]) / 0.1), Math.ceil((hi[1] - lo[1]) / 0.1), Math.ceil((hi[2] - lo[2]) / 0.1));
   const Pen = new Float32Array(G.N), tun = P.tunnel || {}, PenT = {};
@@ -346,6 +397,9 @@ function campi(P, g, r, R) {
     const Do = edt(S), Di = edt(S, true), w = pesi(n) * (P.morbidi && MUSCOLI.includes(n) ? P.morbidi : 1), T = tun[n] ? (PenT[n] = new Float32Array(G.N)) : Pen;
     for (let i = 0; i < G.N; i++) { const d = Do[i] - Di[i], p = r + MARG - d; if (p > 0) T[i] += w * p * p; if (d < Dmin[i]) Dmin[i] = d; }
   }
+  if (EXTRACAPSULARI.includes(P.id)) for (let k = 0; k < G.NZ; k++) for (let j = 0; j < G.NY; j++) for (let i = 0; i < G.NX; i++) {
+    const id2 = G.vi(i, j, k), d = distCapsula(G.O[0] + (i + 0.5) * G.H, G.O[1] + (j + 0.5) * G.H, G.O[2] + (k + 0.5) * G.H), p = r + MARG - d;
+    if (p > 0) Pen[id2] += 120 * p * p; if (d < Dmin[id2]) Dmin[id2] = d; }
   // altri tubi (vasi e nervi), esclusi il tubo stesso, il tronco da cui nasce e i suoi rami
   const fam = new Set([P.id, P.attacca, P.attaccaFine, ...(P.ignora || []), ...PERCORSI.filter(q => q.attacca === P.id || q.attaccaFine === P.id).map(q => q.id)]);
   if (P.attacca) PERCORSI.filter(q => q.attacca === P.attacca).forEach(q => fam.add(q.id));
