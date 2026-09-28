@@ -80,14 +80,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .item label{flex:1}
 .credit{font-size:11px;color:var(--muted);margin:8px 2px 0;line-height:1.35}
 
-#lbls{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-#lbls[hidden]{display:none}
-.lbl{position:absolute;left:0;top:0;will-change:transform}
-.lbl .d{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:#f2b705;border:1.5px solid #1c1c1c;box-shadow:0 0 0 1.5px rgba(255,255,255,.8)}
-.lbl .ln{position:absolute;left:0;top:0;height:1.5px;background:rgba(242,183,5,.9);transform-origin:0 50%}
-.lbl .t{position:absolute;white-space:nowrap;pointer-events:auto;cursor:pointer;font:600 11.5px var(--sans);color:#fff;background:rgba(18,24,31,.82);border:1px solid rgba(242,183,5,.8);border-radius:6px;padding:3px 7px}
-.lbl.occ{opacity:.4}
-.lbl.off{display:none}
 .item .go{border:0;background:transparent;color:var(--muted);font-size:12.5px;padding:2px 6px}
 @media (min-width:900px){
   #sheet{left:auto;right:16px;bottom:16px;width:360px;border-radius:14px;border:1px solid var(--line)}
@@ -133,7 +125,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 <body>
 <script src="../assets/nav.js"></script>
 <canvas id="c" tabindex="0" aria-label="Modello 3D del ginocchio: trascina per ruotare, pizzica per ingrandire, tocca una struttura per il dettaglio"></canvas>
-<div id="lbls" aria-label="Etichette delle strutture" hidden></div>
 <div id="load"><span id="loadTxt">Costruzione del modello…</span><div class="bar"><i id="loadBar"></i></div></div>
 
 <div class="top">
@@ -172,7 +163,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
       <button class="btn" id="bAll">Ripristina</button>
       <button class="btn" id="bBones">Solo ossa</button>
       <button class="btn" id="bTransp" aria-pressed="false">Muscoli trasparenti</button>
-      <button class="btn" id="bLbl" aria-pressed="false">Etichette</button>
     </div>
     <button class="toggle-list" id="bList" aria-expanded="false">Elenco</button>
   </div>
@@ -861,11 +851,13 @@ function pick(x,y){
   ray.setFromCamera(new THREE.Vector2((x/innerWidth)*2-1,-(y/innerHeight)*2+1),camera);
   const hits=ray.intersectObjects(meshes.filter(m=>byId[m.userData.sid].visible),false);
   if(!hits.length){select(null);return;}
-  const h=hits.find(h=>h.object.material.opacity>=0.5)||hits[0];select(h.object.userData.sid);
+  const h=hits.find(h=>h.object.material.opacity>=0.5)||hits[0],id=h.object.userData.sid;
+  if(PES.ids.includes(id)&&h.point.y<PES.yMax){selectPes();return;}
+  select(id);
 }
 const card=document.getElementById('card');
 function select(id){
-  if(typeof extraHL!=='undefined'){extraHL.forEach(m=>m.emissive.setHex(0));extraHL=[];}
+  extraHL.forEach(m=>m.emissive.setHex(0));extraHL=[];pesOn=false;
   if(selected&&selected.mat)selected.mat.emissive.setHex(0x000000);
   selected=id?byId[id]:null;if(!selected){card.hidden=true;return;}
   if(selected.mat)selected.mat.emissive.setHex(0x3b3a14);
@@ -882,8 +874,8 @@ function fillInfo(s){
   el.appendChild(dl);
 }
 card.querySelector('.x').addEventListener('click',()=>select(null));
-document.getElementById('cHide').addEventListener('click',()=>{if(!selected)return;const s=selected;select(null);setVis(s,false);sync();});
-document.getElementById('cIso').addEventListener('click',()=>{if(!selected)return;const k=selected;S.forEach(s=>setVis(s,s===k||s.cat==='ossa'));sync();});
+document.getElementById('cHide').addEventListener('click',()=>{if(!selected)return;const L=pesOn?PES.ids.map(id=>byId[id]):[selected];select(null);L.forEach(s=>setVis(s,false));sync();});
+document.getElementById('cIso').addEventListener('click',()=>{if(!selected)return;const K=pesOn?PES.ids:[selected.id];S.forEach(s=>setVis(s,K.includes(s.id)||s.cat==='ossa'));sync();});
 
 /* ============ Pannello ============ */
 function setVis(s,v){s.visible=v;if(s.group)s.group.visible=v;if(!v&&selected===s)select(null);}
@@ -930,71 +922,23 @@ compact.addEventListener('change',e=>{if(e.matches)setSheet(false);});
 
 
 
-/* ============ Etichette sul modello ============ */
-const LBL=[
- {k:'pes',t:"Zampa d'oca",ids:['sart','grac','semit'],m:'low',sel:'sart',nm:"Zampa d'oca (pes anserinus)",info:"Sartorio, gracile e semitendinoso formano insieme la zampa d'oca: inserzione comune dei tre tendini sulla faccia anteromediale della tibia prossimale, circa 4 cm sotto l'interlinea, medialmente alla tuberosità tibiale. Si trova superficialmente all'inserzione tibiale del LCM; tra tendini e LCM/tibia è interposta la borsa anserina.",o:"Sartorio: spina iliaca anteriore superiore. Gracile: corpo del pube e branca ischio-pubica. Semitendinoso: tuberosità ischiatica.",ins:"Faccia antero-mediale della tibia prossimale, dall'avanti all'indietro: sartorio, gracile, semitendinoso.",fn:"Flessione del ginocchio e rotazione interna della tibia; stabilizzazione dinamica mediale contro valgo e rotazione esterna."},
- {k:'bans',t:'Borsa anserina',ids:['bans'],m:'c'},
- {k:'bgsm',t:'Borsa GS',ids:['bgsm'],m:'c'},
- {k:'itb',t:'Bandelletta ileotibiale (Gerdy)',ids:['itb'],m:'low'},
- {k:'lcm',t:'LCM',ids:['lcm'],m:'y',a:-1.4},
- {k:'lcl',t:'LCL',ids:['lcl'],m:'c'},
- {k:'bic',t:'Bicipite femorale (inserzione)',ids:['biclong','bicbrev'],m:'low',sel:'biclong'},
- {k:'menmed',t:'Menisco mediale',ids:['menmed'],m:'xmax'},
- {k:'menlat',t:'Menisco laterale',ids:['menlat'],m:'xmin'},
- {k:'lca',t:'LCA',ids:['lca'],m:'c'},
- {k:'lcp',t:'LCP',ids:['lcp'],m:'c'},
- {k:'tenrot',t:'Tendine rotuleo',ids:['tenrot'],m:'c'}
-];
-const lblBox=document.getElementById('lbls');let extraHL=[];
-function ptsOf(ids){const a=[];ids.forEach(id=>{const s=byId[id];if(!s||!s.group)return;s.group.traverse(o=>{if(o.isMesh){const p=o.geometry.attributes.position;for(let i=0;i<p.count;i+=2)a.push([p.getX(i),p.getY(i),p.getZ(i)]);}});});return a;}
-function anchorOf(L){const P=ptsOf(L.ids);if(!P.length)return null;let S=P;
-  if(L.m==='low'){S=[...P].sort((a,b)=>a[1]-b[1]).slice(0,Math.max(5,P.length*0.04|0));}
-  else if(L.m==='y'){S=P.filter(p=>Math.abs(p[1]-L.a)<0.4);if(!S.length)S=P;}
-  else if(L.m==='xmax'){S=[...P].sort((a,b)=>b[0]-a[0]).slice(0,Math.max(5,P.length*0.05|0));}
-  else if(L.m==='xmin'){S=[...P].sort((a,b)=>a[0]-b[0]).slice(0,Math.max(5,P.length*0.05|0));}
-  const c=[0,0,0];S.forEach(p=>{c[0]+=p[0];c[1]+=p[1];c[2]+=p[2];});return V(c[0]/S.length,c[1]/S.length,c[2]/S.length);}
-function buildLabels(){
-  LBL.forEach(L=>{L.p=anchorOf(L);if(!L.p)return;const e=document.createElement('div');e.className='lbl';
-    e.innerHTML='<span class="ln"></span><span class="d"></span><button class="t"></button>';e.querySelector('.t').textContent=L.t;
-    e.querySelector('.t').addEventListener('click',ev=>{ev.stopPropagation();pickLabel(L);});lblBox.appendChild(e);L.el=e;L.tx=e.querySelector('.t');L.ln=e.querySelector('.ln');L.occ=false;});
+/* ============ Zampa d'oca ============ */
+/* clic sul tratto tendineo distale (sotto y = yMax, circa 3,5 cm sopra l'interlinea) di sartorio, gracile o semitendinoso:
+   scheda comune della zampa d'oca, con i tre tendini evidenziati; Isola e Nascondi agiscono su tutti e tre */
+const PES={ids:['sart','grac','semit'],yMax:2.5,name:"Zampa d'oca (pes anserinus)",info:"Sartorio, gracile e semitendinoso formano insieme la zampa d'oca: inserzione comune dei tre tendini sulla faccia anteromediale della tibia prossimale, circa 4 cm sotto l'interlinea, medialmente alla tuberosità tibiale. Si trova superficialmente all'inserzione tibiale del LCM; tra tendini e LCM/tibia è interposta la borsa anserina.",o:"Sartorio: spina iliaca anteriore superiore. Gracile: corpo del pube e branca ischio-pubica. Semitendinoso: tuberosità ischiatica.",ins:"Faccia antero-mediale della tibia prossimale, dall'avanti all'indietro: sartorio, gracile, semitendinoso.",fn:"Flessione del ginocchio e rotazione interna della tibia; stabilizzazione dinamica mediale contro valgo e rotazione esterna."};
+let extraHL=[],pesOn=false;
+function selectPes(){
+  select(PES.ids[0]);pesOn=true;
+  PES.ids.forEach(id=>{const s=byId[id];if(s&&s.mat&&s!==selected){s.mat.emissive.setHex(0x3b3a14);extraHL.push(s.mat);}});
+  document.getElementById('cName').textContent=PES.name;fillInfo(PES);
 }
-function pickLabel(L){
-  L.ids.forEach(id=>{const s=byId[id];if(s&&!s.visible)setVis(s,true);});sync();
-  select(L.sel||L.ids[0]);
-  extraHL.forEach(m=>{if(!selected||m!==selected.mat)m.emissive.setHex(0);});extraHL=[];
-  L.ids.forEach(id=>{const s=byId[id];if(s&&s.mat&&s!==selected){s.mat.emissive.setHex(0x3b3a14);extraHL.push(s.mat);}});
-  if(L.nm){document.getElementById('cName').textContent=L.nm;fillInfo(L);}
-}
-const _v=new THREE.Vector3();
-function updateLabels(){
-  if(lblBox.hidden)return;const W=innerWidth,H=innerHeight,placed=[];
-  const list=LBL.filter(L=>L.el);
-  list.forEach(L=>{const vis=L.ids.some(id=>byId[id]&&byId[id].visible);_v.copy(L.p).project(camera);
-    L.sx=(_v.x+1)/2*W;L.sy=(1-_v.y)/2*H;L.on=vis&&_v.z<1&&L.sx>-20&&L.sx<W+20&&L.sy>-20&&L.sy<H+20;});
-  list.filter(L=>L.on).sort((a,b)=>a.sy-b.sy).forEach(L=>{
-    const w=L.tw||(L.tw=L.tx.offsetWidth||90),h=22;let dx=14,dy=-24;
-    const right=L.sx+dx+w<W-8;if(!right)dx=-14-w;
-    for(let k=0;k<6;k++){const r={x:L.sx+dx,y:L.sy+dy,w,h};if(!placed.some(p=>r.x<p.x+p.w&&r.x+r.w>p.x&&r.y<p.y+p.h&&r.y+r.h>p.y))break;dy+=(k%2?-1:1)*22*(k+1);}
-    placed.push({x:L.sx+dx,y:L.sy+dy,w,h});
-    L.el.style.transform='translate('+L.sx.toFixed(1)+'px,'+L.sy.toFixed(1)+'px)';L.tx.style.left=dx+'px';L.tx.style.top=dy+'px';
-    const tx=dx<0?dx+w:dx,ty=dy+h/2,len=Math.hypot(tx,ty),ang=Math.atan2(ty,tx);L.ln.style.width=len+'px';L.ln.style.transform='rotate('+ang+'rad)';
-  });
-  list.forEach(L=>{L.el.classList.toggle('off',!L.on);L.el.classList.toggle('occ',!!L.occ);});
-}
-const _rc=new THREE.Raycaster();let lastOcc=0;
-function occlusion(now){
-  if(lblBox.hidden||now-lastOcc<450)return;lastOcc=now;const vis=meshes.filter(m=>byId[m.userData.sid].visible&&m.material.opacity>=0.5);
-  LBL.forEach(L=>{if(!L.el||!L.on)return;const dir=L.p.clone().sub(camera.position);const d=dir.length();dir.normalize();_rc.set(camera.position,dir);_rc.far=d-0.25;
-    const h=_rc.intersectObjects(vis,false)[0];L.occ=!!(h&&!L.ids.includes(h.object.userData.sid));});
-}
-document.getElementById('bLbl').addEventListener('click',e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);lblBox.hidden=!on;});
 /* ============ Loop e costruzione ============ */
 let building=true,lastR=0;
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 function loop(now){
   if(anim){const t=Math.min(1,(now-anim.t0)/650),k=ease(t);
     cam.theta=anim.from.theta+(anim.to.theta-anim.from.theta)*k;cam.phi=anim.from.phi+(anim.to.phi-anim.from.phi)*k;cam.r=anim.from.r+(anim.to.r-anim.from.r)*k;cam.target.lerpVectors(anim.from.tg,anim.to.tg,k);if(t>=1)anim=null;}
-  updateCam();if(!building||now-lastR>250){renderer.render(scene,camera);lastR=now;}if(!building){updateLabels();occlusion(now);}requestAnimationFrame(loop);
+  updateCam();if(!building||now-lastR>250){renderer.render(scene,camera);lastR=now;}requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 (async function(){
@@ -1006,7 +950,7 @@ requestAnimationFrame(loop);
   }
   txt.textContent='Calcolo di ombre e profondità…';await new Promise(r=>setTimeout(r,30));
   try{bakeAO(built);}catch(err){console.error(err);}
-  bar.style.width='100%';building=false;document.getElementById('load').hidden=true;buildLabels();
+  bar.style.width='100%';building=false;document.getElementById('load').hidden=true;
 })();
 })();
 
