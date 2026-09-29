@@ -459,12 +459,14 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
       shown = shown < 0 ? target : shown + (target - shown) * 0.2;
       if (Math.abs(target - shown) < 0.001) shown = target; else schedule();
       var p = shown;
-      var e = smooth(p), idx = Math.round(p * (N - 1)), im = nearest(idx);
+      var e = smooth(p), f = p * (N - 1), idx = Math.floor(f), im = nearest(idx);
+      /* dissolvenza tra due fotogrammi vicini: il passaggio da uno all'altro non si vede a scatti */
+      var nx = idx + 1 < N ? frames[idx + 1] : null, a = nx && frames[idx] ? f - idx : 0;
       if (!im) return;
       var desk = W >= 880, fh, cx, cy, op = 1;
       if (desk) { fh = H * (1.06 - 0.16 * e); cx = W * 0.7; cy = H * 0.53; }
       else { fh = H * 0.62 * (1.18 - 0.15 * e); cx = W * 0.5; cy = H * 0.35; op = 1 - 0.6 * smooth((p - 0.25) / 0.3); }
-      var key = [W, H, idx, frames.indexOf(im), Math.round(fh), op.toFixed(2)].join();
+      var key = [W, H, idx, frames.indexOf(im), a.toFixed(2), Math.round(fh), op.toFixed(2)].join();
       if (key === last) return;
       last = key;
       if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
@@ -475,6 +477,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
       ctx.imageSmoothingQuality = 'high';
       var fw = fh * 1.6;
       ctx.drawImage(im, cx - fw / 2, cy - fh / 2, fw, fh);
+      if (a > 0.02) { ctx.globalAlpha = a; ctx.drawImage(nx, cx - fw / 2, cy - fh / 2, fw, fh); ctx.globalAlpha = 1; }
       canvas.style.opacity = op;
       media.classList.add('ready');
     }
