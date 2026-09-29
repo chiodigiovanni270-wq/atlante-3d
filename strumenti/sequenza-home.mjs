@@ -3,7 +3,7 @@
 
    Uso (dalla cartella del progetto, con il server locale attivo sulla porta 8000):
      python3 -m http.server 8000                       (in un altro terminale)
-     node strumenti/sequenza-home.mjs <nome> [--passo=8] [--dist=1.4] [--alza=0] [--w=1280] [--ws=800] [--prova]
+     node strumenti/sequenza-home.mjs <nome> [--passo=4] [--dist=1.4] [--alza=0] [--w=1280] [--ws=800] [--prova]
 
    Esempio:
      node strumenti/sequenza-home.mjs polso-dito-3d
@@ -13,7 +13,7 @@
      Alla fine stampa il numero di fotogrammi da scrivere in index.html (attributo data-frames).
 
    Opzioni:
-     --passo  px di trascinamento per fotogramma: un giro = 698 px, quindi 8 → 87 fotogrammi (~4° l'uno)
+     --passo  px di trascinamento per fotogramma: un giro = 698 px, quindi 4 → 175 fotogrammi (~2° l'uno)
      --dist   distanza della camera rispetto a quella iniziale (1.4 = modello intero con un po' di margine;
               l'ingrandimento iniziale lo fa la pagina)
      --alza   elevazione della camera rispetto a quella iniziale, in radianti (negativo = più dal basso)
@@ -37,10 +37,10 @@ const args = process.argv.slice(2);
 const name = args.find(a => !a.startsWith('--'));
 const opt = k => (args.find(a => a.startsWith(`--${k}=`)) || '').split('=')[1];
 if (!name || !/^[a-z0-9-]+$/.test(name)) {
-  console.error('Uso: node strumenti/sequenza-home.mjs <nome> [--passo=8] [--dist=1.4] [--alza=0] [--w=1280] [--ws=800] [--prova]');
+  console.error('Uso: node strumenti/sequenza-home.mjs <nome> [--passo=4] [--dist=1.4] [--alza=0] [--w=1280] [--ws=800] [--prova]');
   process.exit(1);
 }
-const passo = Math.max(1, Math.round(Number(opt('passo') || 8)));
+const passo = Math.max(1, Math.round(Number(opt('passo') || 4)));
 const dist = Number(opt('dist') || 1.4), alza = Number(opt('alza') || 0);
 const W = Math.round(Number(opt('w') || 1280)), WS = Math.round(Number(opt('ws') || 800));
 const prova = args.includes('--prova');

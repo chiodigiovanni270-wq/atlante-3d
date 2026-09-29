@@ -250,7 +250,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
   <!-- palco: il polso resta sullo sfondo e ruota con lo scorrimento mentre titolo e frase scorrono sopra.
        Fotogrammi generati da strumenti/sequenza-home.mjs: data-frames = numero di fotogrammi -->
   <div class="stage">
-    <div class="stage-media" aria-hidden="true" data-frames="87" data-src="assets/sequenza/polso-dito-3d/">
+    <div class="stage-media" aria-hidden="true" data-frames="175" data-src="assets/sequenza/polso-dito-3d/">
       <picture>
         <source media="(max-width:759px)" srcset="assets/sequenza/polso-dito-3d/s/000.webp">
         <img src="assets/sequenza/polso-dito-3d/l/000.webp" width="1280" height="800" alt="" fetchpriority="high">
@@ -483,8 +483,8 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
     addEventListener('resize', function(){ last = ''; schedule(); });
     load(0);
     if (!still) {
-      /* prima un fotogramma ogni 8, poi ogni 4, 2 e tutti: la rotazione è subito completa, poi si fa più fluida */
-      var start = function(){ [8, 4, 2, 1].forEach(function(st){ for (var i = 0; i < N; i += st) load(i); }); };
+      /* prima un fotogramma ogni 16, poi ogni 8, 4, 2 e tutti: la rotazione è subito completa, poi si fa più fluida */
+      var start = function(){ [16, 8, 4, 2, 1].forEach(function(st){ for (var i = 0; i < N; i += st) load(i); }); };
       if (document.readyState === 'complete') start(); else addEventListener('load', start);
     }
   }
