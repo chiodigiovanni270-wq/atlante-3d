@@ -199,11 +199,10 @@ h1 span{color:var(--accent)}
 
 /* piè di pagina */
 footer{position:relative;overflow:hidden;border-top:1px solid var(--line);padding-top:56px;padding-bottom:0}
-.warn-band{display:flex;align-items:flex-start;gap:12px;margin:0;padding:16px 20px;border:1px solid rgba(236,200,90,.3);border-radius:20px;
-  background:linear-gradient(135deg,rgba(236,200,90,.12),rgba(236,200,90,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.1);font-size:15px;line-height:1.45}
-.warn-band svg{flex:none;margin-top:1px}
-.warn-band strong{font-weight:600}
-.foot-grid{display:grid;gap:32px;margin-top:44px}
+.foot-grid{display:grid;gap:32px}
+/* avvertenza: riga discreta sotto i crediti */
+.foot-note{margin:40px 0 0;padding-top:20px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--muted)}
+.foot-note strong{font-weight:600;color:var(--ink-2)}
 .foot-grid p{margin:0}
 .foot-brand p{margin-top:12px;max-width:40ch;font-size:14px;color:var(--muted)}
 .foot-author strong{font-weight:600;color:var(--ink)}
@@ -377,8 +376,6 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
 
 <footer id="crediti">
   <div class="wrap">
-    <p class="warn-band"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
-      <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
     <div class="foot-grid">
       <div class="foot-brand">
         <a class="brand" href="./"><img src="assets/favicon.svg" width="28" height="28" alt="">Atlante <b>3D</b></a>
@@ -397,6 +394,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
         <p class="f-cite">Mitsuhashi N et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Res 2009.</p>
       </div>
     </div>
+    <p class="foot-note"><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p>
     <p class="wordmark" aria-hidden="true">Atlante 3D</p>
   </div>
 </footer>
