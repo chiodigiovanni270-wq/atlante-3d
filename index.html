@@ -90,10 +90,7 @@ h1{margin:0;font:300 clamp(54px,8.4vw,120px)/.95 var(--sans);letter-spacing:-.05
 h1 span{color:var(--accent)}
 .tagline{margin:0;max-width:24ch;font:300 clamp(21px,2.3vw,30px)/1.25 var(--sans);letter-spacing:-.02em;color:var(--dim)}
 .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
-.hero-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
-.hero-foot p{display:flex;align-items:flex-start;gap:10px;margin:0}
-.hero-foot svg{flex:none}
-.hero-foot strong{color:var(--ink);font-weight:600}
+.hero-foot{display:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px 24px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
 .scroll-cue{display:none;align-items:center;gap:10px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--muted);text-decoration:none}
 .scroll-cue i{display:block;width:1px;height:28px;background:linear-gradient(var(--muted),transparent)}
 /* scheda di esempio in vetro sopra il modello (solo schermi larghi) */
@@ -107,6 +104,7 @@ h1 span{color:var(--accent)}
   .stage-media img{top:3%;left:calc(70% - 80vh);width:160vh;height:100%;transform:scale(1.06)}
   .hero{padding-bottom:32px}
   .stage-media::after{background:linear-gradient(180deg,var(--bg) 0%,rgba(7,10,13,0) 12%),linear-gradient(0deg,var(--bg) 0%,rgba(7,10,13,0) 16%)}
+  .hero-foot{display:flex}
   .scroll-cue{display:inline-flex}
 }
 @media (min-width:1100px){
@@ -276,8 +274,6 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
       </div>
 
       <div class="hero-foot">
-        <p><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
-          <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
         <a class="scroll-cue" href="#atlante">Scorri <i aria-hidden="true"></i></a>
       </div>
     </section>
