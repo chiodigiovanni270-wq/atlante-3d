@@ -112,3 +112,19 @@ export function espressioneCattura(W, H, z, dy, tipo = 'image/jpeg', qualita = 0
     res({ data: o.toDataURL('${tipo}', ${qualita}) });
   }))`;
 }
+
+/* come espressioneCattura, ma senza sfondo (trasparente) e in più misure: restituisce { data: [dataURL, …] }
+   nell'ordine di `larghezze` (altezza = 5/8 della larghezza). Il canvas del modello è scalato per intero. */
+export function espressioneCatturaTrasparente(larghezze, tipo = 'image/webp', qualita = 0.8) {
+  return `new Promise(res => requestAnimationFrame(() => {
+    const c = document.getElementById('c') || document.querySelector('canvas');
+    if (!c) return res({ error: 'nessun canvas nella pagina' });
+    res({ data: ${JSON.stringify(larghezze)}.map(W => {
+      const H = Math.round(W * 5 / 8);
+      const o = document.createElement('canvas'); o.width = W; o.height = H; const g = o.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(c, 0, 0, c.width, c.height, 0, 0, W, H);
+      return o.toDataURL('${tipo}', ${qualita});
+    }) });
+  }))`;
+}

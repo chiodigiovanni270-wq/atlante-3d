@@ -7,6 +7,8 @@
 <meta name="description" content="Modelli anatomici 3D interattivi per lo studio dell'anatomia muscolo-scheletrica in radiologia. Materiale didattico.">
 <meta name="theme-color" content="#070a0d">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" as="image" href="assets/sequenza/polso-dito-3d/l/000.webp" media="(min-width:760px)" fetchpriority="high">
+<link rel="preload" as="image" href="assets/sequenza/polso-dito-3d/s/000.webp" media="(max-width:759px)" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Spectral:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
@@ -70,13 +72,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 .btn-glass{color:var(--ink)}
 .btn-glass:hover{border-color:rgba(255,255,255,.3)}
 
-/* prima schermata: video del modello che ruota, testo in basso a sinistra */
-.hero{position:relative;isolation:isolate;min-height:max(660px,100svh);display:flex;flex-direction:column;justify-content:flex-end;gap:40px;overflow:hidden;
+/* palco: il modello resta fermo sullo sfondo (sticky) mentre titolo e frase scorrono sopra;
+   rotazione e ingrandimento seguono lo scorrimento (sequenza di fotogrammi, strumenti/sequenza-home.mjs) */
+.stage{position:relative;isolation:isolate}
+.stage-media{position:sticky;top:0;height:100vh;height:100svh;margin-bottom:-100vh;margin-bottom:-100svh;z-index:-1;pointer-events:none;overflow:hidden}
+.stage-media::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(40% 36% at 50% 33%,rgba(114,180,208,.10),transparent 70%),radial-gradient(70% 46% at 50% 33%,#111820 0%,transparent 72%)}
+.stage-media img,.stage-media canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+.stage-media img{top:4%;left:calc(50% - 49.6svh);width:99.2svh;height:62%;object-fit:contain;transform:scale(1.18)}   /* senza JS: primo fotogramma fermo, come il canvas */
+.stage-media.ready img{display:none}
+/* sfumature fisse sullo schermo (non sul titolo): barra in alto leggibile e testo leggibile sopra il modello */
+.stage-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--bg) 0%,rgba(7,10,13,0) 14%),linear-gradient(0deg,var(--bg) 0%,var(--bg) 24%,rgba(7,10,13,0) 56%)}
+.hero{position:relative;min-height:max(640px,100svh);display:flex;flex-direction:column;justify-content:flex-end;gap:40px;
   padding-top:calc(env(safe-area-inset-top,0px) + 96px);padding-bottom:28px}
-.hero-media{position:absolute;inset:0;z-index:-1;pointer-events:none}
-.hero-media video{position:absolute;left:50%;top:52px;width:min(1000px,165vw);height:auto;aspect-ratio:8/5;transform:translateX(-50%);object-fit:cover;background:var(--bg);
-  -webkit-mask-image:radial-gradient(ellipse 48% 56% at 50% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 48% 56% at 50% 50%,#000 55%,transparent 100%)}
-.hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,var(--bg) 30%,rgba(7,10,13,0) 62%)}
 .hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:22px;max-width:680px}
 h1{margin:0;font:300 clamp(54px,8.4vw,120px)/.95 var(--sans);letter-spacing:-.05em}
 h1 span{color:var(--accent)}
@@ -95,34 +103,31 @@ h1 span{color:var(--accent)}
   .cta .btn{width:100%}
 }
 @media (min-width:880px){
-  .hero{justify-content:flex-end;padding-bottom:32px}
-  .hero-media video{left:auto;right:-7vw;top:50%;width:min(1240px,80vw);transform:translateY(-54%);
-    -webkit-mask-image:radial-gradient(ellipse 46% 56% at 50% 50%,#000 52%,transparent 100%);mask-image:radial-gradient(ellipse 46% 56% at 50% 50%,#000 52%,transparent 100%)}
-  .hero-media::after{background:linear-gradient(90deg,var(--bg) 0%,rgba(7,10,13,.8) 30%,rgba(7,10,13,0) 58%),linear-gradient(0deg,var(--bg) 0%,rgba(7,10,13,0) 30%)}
+  .stage-media::before{background:radial-gradient(30% 50% at 70% 50%,rgba(114,180,208,.10),transparent 70%),radial-gradient(46% 70% at 70% 50%,#111820 0%,transparent 72%)}
+  .stage-media img{top:3%;left:calc(70% - 80vh);width:160vh;height:100%;transform:scale(1.06)}
+  .hero{padding-bottom:32px}
+  .stage-media::after{background:linear-gradient(180deg,var(--bg) 0%,rgba(7,10,13,0) 12%),linear-gradient(0deg,var(--bg) 0%,rgba(7,10,13,0) 16%)}
   .scroll-cue{display:inline-flex}
 }
 @media (min-width:1100px){
   .hero-card{display:flex;flex-direction:column;gap:6px;position:absolute;right:var(--pad);bottom:150px;width:300px;padding:16px 18px 18px;border-radius:22px}
   .hero-card .cat{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
-  .hero-card .cat::before{content:"";width:8px;height:8px;border-radius:50%;background:#e6e1d3}
+  .hero-card .cat::before{content:"";width:8px;height:8px;border-radius:50%;background:#d9d2bf}
   .hero-card strong{font:600 19px/1.25 var(--serif)}
   .hero-card p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
 }
 
-/* frase introduttiva: le parole si accendono durante lo scorrimento */
-.intro{padding-top:clamp(96px,14vw,180px);padding-bottom:clamp(72px,9vw,120px)}
-.lit{margin:24px 0 0;max-width:1180px;font:300 clamp(28px,3.9vw,56px)/1.16 var(--sans);letter-spacing:-.03em}
+/* frase introduttiva: scorre sopra il modello, le parole si accendono durante lo scorrimento */
+.intro{position:relative;padding-top:clamp(96px,22vh,220px);padding-bottom:clamp(72px,12vh,140px)}
+.intro-col{max-width:680px}
+.lit{margin:24px 0 0;font:300 clamp(28px,3.4vw,48px)/1.16 var(--sans);letter-spacing:-.03em;text-shadow:0 2px 24px rgba(7,10,13,.8)}
 .lit .w{color:var(--ink);opacity:.2;transition:opacity .35s}
 .lit .w.on{opacity:1}
-.stats{list-style:none;margin:clamp(64px,8vw,104px) 0 0;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
-.stats li{display:flex;align-items:baseline;gap:18px;padding:22px 0;border-bottom:1px solid var(--line)}
-.stats b{flex:none;min-width:2.4ch;font:300 clamp(52px,6vw,88px)/1 var(--sans);letter-spacing:-.05em}
-.stats span{font-size:15px;color:var(--muted);max-width:26ch}
-@media (min-width:880px){
-  .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .stats li{flex-direction:column;gap:10px;padding:28px 28px 0 0;border-bottom:0}
-  .stats li+li{padding-left:28px;border-left:1px dashed rgba(255,255,255,.14)}
-}
+.stats{list-style:none;margin:clamp(56px,8vh,96px) 0 0;padding:0;border-top:1px solid var(--line)}
+.stats li{display:flex;align-items:baseline;gap:22px;padding:20px 0;border-bottom:1px solid var(--line)}
+.stats b{flex:none;min-width:2.6ch;font:300 clamp(48px,5vw,76px)/1 var(--sans);letter-spacing:-.05em}
+.stats span{font-size:15px;color:var(--muted);max-width:30ch}
+@media (min-width:880px){.intro-col{max-width:min(640px,46vw)}}
 
 /* modelli */
 .models{position:relative;padding-top:clamp(40px,6vw,72px);padding-bottom:clamp(96px,12vw,152px)}
@@ -218,7 +223,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
 @keyframes fade{from{opacity:0}to{opacity:1}}
 .hero-text>*,.hero-foot{animation:rise .9s var(--ease) both}
 .hero-text>:nth-child(2){animation-delay:.08s}.hero-text>:nth-child(3){animation-delay:.16s}.hero-foot{animation-delay:.3s}
-.hero-media{animation:fade 1.4s ease both}
+.stage-media{animation:fade 1.4s ease both}
 .hero-card{animation:rise .9s var(--ease) .45s both}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -242,47 +247,53 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
 </header>
 
 <main>
-  <section class="hero wrap" aria-labelledby="titolo">
-    <!-- video decorativo: il modello del ginocchio che ruota (strumenti/video-home.mjs); il poster è il primo fotogramma -->
-    <div class="hero-media" aria-hidden="true">
-      <video id="heroVideo" autoplay muted loop playsinline preload="auto" poster="assets/video/ginocchio-3d.jpg" width="1280" height="800" tabindex="-1">
-        <source src="assets/video/ginocchio-3d.mp4" type="video/mp4">
-        <source src="assets/video/ginocchio-3d.webm" type="video/webm">
-      </video>
+  <!-- palco: il polso resta sullo sfondo e ruota con lo scorrimento mentre titolo e frase scorrono sopra.
+       Fotogrammi generati da strumenti/sequenza-home.mjs: data-frames = numero di fotogrammi -->
+  <div class="stage">
+    <div class="stage-media" aria-hidden="true" data-frames="87" data-src="assets/sequenza/polso-dito-3d/">
+      <picture>
+        <source media="(max-width:759px)" srcset="assets/sequenza/polso-dito-3d/s/000.webp">
+        <img src="assets/sequenza/polso-dito-3d/l/000.webp" width="1280" height="800" alt="" fetchpriority="high">
+      </picture>
+      <canvas></canvas>
     </div>
 
-    <div class="hero-text">
-      <h1 id="titolo">Atlante<br>anatomico <span>3D</span></h1>
-      <p class="tagline">Anatomia muscolo-scheletrica per la radiologia, in tre dimensioni.</p>
-      <div class="cta">
-        <a class="btn btn-light" href="#modelli">Esplora i modelli <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
-        <a class="btn btn-glass glass" href="#uso">Come si usa</a>
+    <section class="hero wrap" aria-labelledby="titolo">
+      <div class="hero-text">
+        <h1 id="titolo">Atlante<br>anatomico <span>3D</span></h1>
+        <p class="tagline">Anatomia muscolo-scheletrica per la radiologia, in tre dimensioni.</p>
+        <div class="cta">
+          <a class="btn btn-light" href="#modelli">Esplora i modelli <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
+          <a class="btn btn-glass glass" href="#uso">Come si usa</a>
+        </div>
       </div>
-    </div>
 
-    <!-- scheda di esempio, come quelle che si aprono toccando una struttura nel modello -->
-    <div class="hero-card glass" aria-hidden="true">
-      <span class="cat">Legamenti</span>
-      <strong>Legamento crociato anteriore (LCA)</strong>
-      <p>Limita traslazione anteriore e rotazione interna della tibia.</p>
-    </div>
+      <!-- scheda di esempio, come quelle che si aprono toccando una struttura nel modello (testo dal modello del polso) -->
+      <div class="hero-card glass" aria-hidden="true">
+        <span class="cat">Retinacoli</span>
+        <strong>Retinacolo dei flessori</strong>
+        <p>Dal tubercolo dello scafoide e dalla cresta del trapezio al pisiforme e all’uncino dell’uncinato: tetto del tunnel carpale.</p>
+      </div>
 
-    <div class="hero-foot">
-      <p><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
-        <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
-      <a class="scroll-cue" href="#atlante">Scorri <i aria-hidden="true"></i></a>
-    </div>
-  </section>
+      <div class="hero-foot">
+        <p><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ecc85a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
+          <span><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</span></p>
+        <a class="scroll-cue" href="#atlante">Scorri <i aria-hidden="true"></i></a>
+      </div>
+    </section>
 
-  <section id="atlante" class="intro wrap" aria-label="L'atlante">
-    <p class="kicker">L'atlante</p>
-    <p class="lit">Ogni tavola è un modello tridimensionale da ruotare, scomporre per strati e consultare struttura per struttura, con note di anatomia e di interesse radiologico. Direttamente nel browser, anche da smartphone.</p>
-    <ul class="stats">
-      <li><b data-count-models>2</b><span>Tavole interattive, ognuna una pagina indipendente</span></li>
-      <li><b>4</b><span>Viste standard per modello, con un tocco</span></li>
-      <li><b>360°</b><span>Rotazione libera, zoom e strati da mostrare o nascondere</span></li>
-    </ul>
-  </section>
+    <section id="atlante" class="intro wrap" aria-label="L'atlante">
+      <div class="intro-col">
+        <p class="kicker">L'atlante</p>
+        <p class="lit">Ogni tavola è un modello tridimensionale da ruotare, scomporre per strati e consultare struttura per struttura, con note di anatomia e di interesse radiologico. Direttamente nel browser, anche da smartphone.</p>
+        <ul class="stats">
+          <li><b data-count-models>2</b><span>Tavole interattive, ognuna una pagina indipendente</span></li>
+          <li><b>4</b><span>Viste standard per modello, con un tocco</span></li>
+          <li><b>360°</b><span>Rotazione libera, zoom e strati da mostrare o nascondere</span></li>
+        </ul>
+      </div>
+    </section>
+  </div>
 
   <section id="modelli" class="models wrap" aria-labelledby="modelli-titolo">
     <div class="sec-head">
@@ -332,7 +343,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
   </section>
 
   <section id="uso" class="usage" aria-labelledby="uso-titolo">
-    <div class="usage-bg" aria-hidden="true"><img src="assets/anteprime/polso-dito-3d.jpg" width="1600" height="1000" alt="" loading="lazy"></div>
+    <div class="usage-bg" aria-hidden="true"><img src="assets/anteprime/ginocchio-3d.jpg" width="1600" height="1000" alt="" loading="lazy"></div>
     <div class="wrap">
       <div class="sec-head">
         <p class="kicker">Come si usa</p>
@@ -408,15 +419,65 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
   var n = document.querySelectorAll('.grid > .card').length;
   document.querySelectorAll('[data-count-models]').forEach(function(el){ el.textContent = n; });
 
-  /* video: fermo (poster) con "riduci movimento" o risparmio dati; in pausa quando non è visibile */
-  var v = document.getElementById('heroVideo');
-  if (v) {
-    var saveData = navigator.connection && navigator.connection.saveData;
-    if (reduce || saveData) { v.removeAttribute('autoplay'); v.pause(); v.preload = 'none'; }
-    else if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function(e){
-        if (e[0].isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function(){}); } else v.pause();
-      }).observe(v);
+  /* palco: fotogramma e ingrandimento del modello in base allo scorrimento.
+     Con "riduci movimento" o risparmio dati resta il primo fotogramma, senza scaricare gli altri. */
+  var media = document.querySelector('.stage-media'), stage = document.querySelector('.stage');
+  if (media && stage && media.querySelector('canvas').getContext) {
+    var N = +media.dataset.frames, still = reduce || (navigator.connection && navigator.connection.saveData);
+    var small = window.matchMedia('(max-width:759px)').matches;
+    var dir = media.dataset.src + (small ? 's/' : 'l/');
+    var canvas = media.querySelector('canvas'), ctx = canvas.getContext('2d');
+    var frames = [], queued = false, last = '';
+    var pad = function(i){ return ('00' + i).slice(-3); };
+    var clamp = function(x){ return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var smooth = function(x){ x = clamp(x); return x * x * (3 - 2 * x); };
+    function load(i){
+      if (frames[i] !== undefined) return;
+      frames[i] = null;
+      var im = new Image(); im.decoding = 'async';
+      im.onload = function(){ frames[i] = im; schedule(); };
+      im.src = dir + pad(i) + '.webp';
+    }
+    function nearest(i){   // fotogramma caricato più vicino a quello richiesto
+      for (var d = 0; d < N; d++) {
+        if (frames[i - d]) return frames[i - d];
+        if (frames[i + d]) return frames[i + d];
+      }
+      return null;
+    }
+    function draw(){
+      queued = false;
+      var W = canvas.clientWidth, H = canvas.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (!W || !H) return;
+      var r = stage.getBoundingClientRect();
+      var p = still ? 0 : clamp(-r.top / Math.max(1, r.height - H));
+      var e = smooth(p), idx = Math.round(p * (N - 1)), im = nearest(idx);
+      if (!im) return;
+      var desk = W >= 880, fh, cx, cy, op = 1;
+      if (desk) { fh = H * (1.06 - 0.16 * e); cx = W * 0.7; cy = H * 0.53; }
+      else { fh = H * 0.62 * (1.18 - 0.15 * e); cx = W * 0.5; cy = H * 0.35; op = 1 - 0.6 * smooth((p - 0.25) / 0.3); }
+      var key = [W, H, idx, frames.indexOf(im), Math.round(fh), op.toFixed(2)].join();
+      if (key === last) return;
+      last = key;
+      if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+        canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      ctx.imageSmoothingQuality = 'high';
+      var fw = fh * 1.6;
+      ctx.drawImage(im, cx - fw / 2, cy - fh / 2, fw, fh);
+      canvas.style.opacity = op;
+      media.classList.add('ready');
+    }
+    function schedule(){ if (!queued) { queued = true; requestAnimationFrame(draw); } }
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', function(){ last = ''; schedule(); });
+    load(0);
+    if (!still) {
+      /* prima un fotogramma ogni 8, poi ogni 4, 2 e tutti: la rotazione è subito completa, poi si fa più fluida */
+      var start = function(){ [8, 4, 2, 1].forEach(function(st){ for (var i = 0; i < N; i += st) load(i); }); };
+      if (document.readyState === 'complete') start(); else addEventListener('load', start);
     }
   }
 

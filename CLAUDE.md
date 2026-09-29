@@ -41,10 +41,11 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
    didascalia della vista, link, titolo e descrizione. Numero "Tav." e conteggio dei modelli sono automatici.
 5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
 
-## Anteprime e video della homepage
-- Dopo ogni modifica a un modello rigenerare la sua anteprima (`strumenti/anteprima.mjs`) e, per il ginocchio,
-  il video della prima schermata: `node strumenti/video-home.mjs ginocchio-3d --dist=1.5`
-  (salva `assets/video/ginocchio-3d.mp4`, `.webm` e il poster `.jpg`; richiede ffmpeg). Il video rispetta "riduci movimento".
+## Anteprime e animazione della homepage
+- Dopo ogni modifica a un modello rigenerare la sua anteprima (`strumenti/anteprima.mjs`) e, per il polso,
+  la sequenza della prima schermata: `node strumenti/sequenza-home.mjs polso-dito-3d`
+  (salva `assets/sequenza/polso-dito-3d/l/` e `s/`; se cambia il numero di fotogrammi aggiornare `data-frames` in `index.html`).
+  L'animazione segue lo scorrimento e rispetta "riduci movimento".
 
 ## Modo di lavorare
 - Prima di modifiche ampie, proponi un piano e attendi conferma.
