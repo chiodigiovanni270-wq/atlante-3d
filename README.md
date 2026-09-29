@@ -60,7 +60,7 @@ Cosa controllare dopo una modifica:
    per fare prove senza sovrascrivere: `--out=/tmp/prova.jpg`. Richiede Node 22+ e Google Chrome.
    Va rigenerata anche quando si modifica un modello, perché l'anteprima resti aggiornata.
 4. **Card** — in `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna distretto, immagine,
-   testo alternativo, didascalia della vista, link, titolo e descrizione. Il numero "Tav." e il conteggio
+   testo alternativo, link, titolo e descrizione. Il numero "Tav." e il conteggio
    dei modelli sono automatici. Il blocco `.sub` (link alle sezioni) è facoltativo e sostituisce il pulsante
    "Apri il modello".
 5. **Verifica e pubblica** — controlla in locale, poi:

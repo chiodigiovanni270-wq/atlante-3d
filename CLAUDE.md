@@ -38,7 +38,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 3. Crea l'anteprima con `node strumenti/anteprima.mjs <nome>-3d` (server locale attivo sulla porta 8000):
    salva `assets/anteprime/<nome>-3d.jpg`, 1600×1000. Istruzioni e opzioni in testa allo script.
 4. In `index.html` duplica un blocco `<!-- CARD MODELLO -->` e aggiorna distretto, immagine, alt,
-   didascalia della vista, link, titolo e descrizione. Numero "Tav." e conteggio dei modelli sono automatici.
+   link, titolo e descrizione. Numero "Tav." e conteggio dei modelli sono automatici.
 5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
 
 ## Anteprime e animazione della homepage
