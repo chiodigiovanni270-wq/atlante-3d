@@ -427,7 +427,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
     var small = window.matchMedia('(max-width:759px)').matches;
     var dir = media.dataset.src + (small ? 's/' : 'l/');
     var canvas = media.querySelector('canvas'), ctx = canvas.getContext('2d');
-    var frames = [], queued = false, last = '';
+    var frames = [], queued = false, last = '', shown = -1;   // shown: avanzamento mostrato, insegue quello dello scorrimento
     var pad = function(i){ return ('00' + i).slice(-3); };
     var clamp = function(x){ return x < 0 ? 0 : x > 1 ? 1 : x; };
     var smooth = function(x){ x = clamp(x); return x * x * (3 - 2 * x); };
@@ -435,7 +435,11 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
       if (frames[i] !== undefined) return;
       frames[i] = null;
       var im = new Image(); im.decoding = 'async';
-      im.onload = function(){ frames[i] = im; schedule(); };
+      /* decodifica prima di usarlo: disegnare un'immagine non ancora decodificata blocca lo scorrimento (iPhone) */
+      im.onload = function(){
+        var ok = function(){ frames[i] = im; schedule(); };
+        if (im.decode) im.decode().then(ok, ok); else ok();
+      };
       im.src = dir + pad(i) + '.webp';
     }
     function nearest(i){   // fotogramma caricato più vicino a quello richiesto
@@ -447,10 +451,14 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
     }
     function draw(){
       queued = false;
-      var W = canvas.clientWidth, H = canvas.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var W = canvas.clientWidth, H = canvas.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, W < 880 ? 1.5 : 2);
       if (!W || !H) return;
       var r = stage.getBoundingClientRect();
-      var p = still ? 0 : clamp(-r.top / Math.max(1, r.height - H));
+      var target = still ? 0 : clamp(-r.top / Math.max(1, r.height - H));
+      /* con uno scorrimento veloce la rotazione non salta: si avvicina all'obiettivo in pochi fotogrammi */
+      shown = shown < 0 ? target : shown + (target - shown) * 0.2;
+      if (Math.abs(target - shown) < 0.001) shown = target; else schedule();
+      var p = shown;
       var e = smooth(p), idx = Math.round(p * (N - 1)), im = nearest(idx);
       if (!im) return;
       var desk = W >= 880, fh, cx, cy, op = 1;
@@ -470,7 +478,7 @@ footer{position:relative;overflow:hidden;border-top:1px solid var(--line);paddin
       canvas.style.opacity = op;
       media.classList.add('ready');
     }
-    function schedule(){ if (!queued) { queued = true; requestAnimationFrame(draw); } }
+    function schedule(){ if (!queued) { queued = true; requestAnimationFrame(function(){ queued = false; draw(); }); } }
     addEventListener('scroll', schedule, { passive: true });
     addEventListener('resize', function(){ last = ''; schedule(); });
     load(0);
