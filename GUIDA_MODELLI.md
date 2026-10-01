@@ -47,5 +47,6 @@ Ricavata da `ginocchio-3d.html` e `polso-dito-3d.html`. Un nuovo modello deve av
 - [ ] Nessun errore in console; carica anche su smartphone
 - [ ] `.views` interamente visibile a 360 px
 - [ ] Su smartphone: pannello chiuso all'avvio, pulsante "Strutture" ovale e funzionante, nessuna fascia di colore diverso in basso in Safari, card compatta, nessuna sovrapposizione titolo/viste
+- [ ] `<title>` nel formato "<Distretto> 3D | MSK Atlas" (anche eventuali `document.title` impostati dal modello)
 - [ ] Credito BodyParts3D presente e corretto
 - [ ] Note `info` anatomicamente corrette (verificate da me)

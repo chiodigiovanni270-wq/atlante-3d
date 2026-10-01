@@ -54,6 +54,8 @@
     '.an-close{flex:none;width:44px;height:44px;margin-right:-10px;border:0;border-radius:10px;background:transparent;color:var(--muted,#93a1ae);' +
       'display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}' +
     '.an-close:hover{color:var(--ink,#e5eaef);background:rgba(255,255,255,.05)}' +
+    '.an-brand{margin:-8px 0 0;color:var(--muted,#93a1ae)}' +
+    '.an-brand strong{color:var(--ink,#e5eaef);font-weight:600}' +
     '.an-sec{display:flex;flex-direction:column;gap:6px}' +
     '.an-sec+.an-sec{padding-top:14px;border-top:1px solid var(--line,#324050)}' +
     '.an-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted,#93a1ae)}' +
@@ -92,8 +94,8 @@
   var bar = document.createElement('header');
   bar.className = 'an-bar';
   bar.innerHTML =
-    '<a class="an-home" href="' + HOME + '" aria-label="Torna all’indice di Atlante 3D"><span class="an-ico">' + CHEVRON + '</span>' +
-      '<img src="../assets/favicon.svg" width="24" height="24" alt="">Atlante <b>3D</b></a>' +
+    '<a class="an-home" href="' + HOME + '" aria-label="Torna all’indice di MSK Atlas"><span class="an-ico">' + CHEVRON + '</span>' +
+      '<img src="../assets/favicon.svg" width="24" height="24" alt="">MSK <b>Atlas</b></a>' +
     '<button type="button" class="an-info" aria-expanded="false" aria-controls="an-panel" aria-label="Informazioni e crediti">' +
       '<span aria-hidden="true">i</span></button>';
 
@@ -113,6 +115,7 @@
     '<div class="an-head"><h2 id="an-title">Informazioni</h2>' +
       '<button type="button" class="an-close" aria-label="Chiudi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" ' +
       'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button></div>' +
+    '<p class="an-brand"><strong>MSK Atlas</strong> — Atlante anatomico 3D</p>' +
     '<section class="an-sec an-warn"><span class="an-label">Avvertenza</span>' +
       '<p><strong>Materiale didattico.</strong> Non destinato a uso clinico o diagnostico.</p></section>' +
     '<section class="an-sec"><span class="an-label">Fonte e licenza</span>' +
