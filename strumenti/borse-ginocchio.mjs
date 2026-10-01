@@ -20,7 +20,9 @@
    semiassi e uno spessore massimo. Su una griglia polare del contorno (superellisse) si cerca lungo la direzione la
    superficie del piano profondo; la borsa vi appoggia e cresce verso l'esterno con profilo lenticolare (bordo
    arrotondato), limitata dallo spazio libero fino alle strutture superficiali. Basi e spessori sono levigati, e le due
-   facce si chiudono sul bordo: la mesh è chiusa e liscia. */
+   facce si chiudono sul bordo: la mesh è chiusa e liscia. Il contorno è appena lobato (parametro orlo, solo verso l'interno
+   della superellisse) e lo spessore varia dolcemente (parametro vuoto, solo in riduzione), come in una sacca collassata
+   con un velo di liquido: l'ingombro non supera mai quello della sacca regolare. */
 import { REAL, setMesh, solid, edt, sample, or, N, log, repack, saveFile, clamp } from './lib-modello.mjs';
 
 const PROVA = process.argv.includes('--prova');
@@ -52,7 +54,12 @@ function borsa(B) {
   let c = B.c.slice(), n = B.n;
   if (n === 'auto') { for (let i = 0; i < 30; i++) { const d = fP(c), g = grad(fP, c); c = c.map((x, k) => x - g[k] * d * 0.8); } n = grad(fP, c); }
   n = nrm(n); const v = nrm(B.v.map((x, k) => x - n[k] * dot(B.v, n))), u = cross(v, n);
-  const sp = (r, t) => { const ct = Math.cos(t), st = Math.sin(t), e = 2 / B.m; return [B.a * r * Math.sign(ct) * Math.abs(ct) ** e, B.b * r * Math.sign(st) * Math.abs(st) ** e + (B.dy || 0) * B.b * r * r * st]; };
+  // aspetto di sacca vera: contorno appena lobato (solo verso l'interno: la borsa resta nell'impronta della superellisse)
+  // e riempimento non uniforme (lo spessore può solo ridursi), diversi per ogni borsa
+  const fase = q => 2.399963 * (BORSE.indexOf(B) + 1) * (q + 1), ORLO = B.orlo ?? 0.14, VUOTO = B.vuoto ?? 0.3;
+  const orlo = t => 1 - ORLO * (0.5 + 0.5 * (0.55 * Math.sin(2 * t + fase(0)) + 0.3 * Math.sin(3 * t + fase(1)) + 0.15 * Math.sin(5 * t + fase(2))));
+  const pieno = (s, t) => { const x = s / B.a, y = t / B.b; return 1 - VUOTO * (0.5 + 0.5 * (0.6 * Math.sin(2.3 * x + 1.7 * y + fase(3)) + 0.4 * Math.sin(-1.9 * x + 3.1 * y + fase(4)))); };
+  const sp = (r0, t) => { const r = r0 * orlo(t), ct = Math.cos(t), st = Math.sin(t), e = 2 / B.m; return [B.a * r * Math.sign(ct) * Math.abs(ct) ** e, B.b * r * Math.sign(st) * Math.abs(st) ** e + (B.dy || 0) * B.b * r * r * st]; };
   // per ogni nodo: distanza lungo n dal piano del centro alla superficie profonda, e spazio libero sopra di essa
   const base = [], lib = [];
   for (let k = 0; k <= K; k++) { base.push([]); lib.push([]);
@@ -82,11 +89,11 @@ function borsa(B) {
   for (let k = 0; k <= K; k++) { id.push([]);
     for (let j = 0; j < base[k].length; j++) {
       const r = k / K, prof = Math.sqrt(Math.max(0, 1 - r * r)), [s, t] = sp(r, 2 * Math.PI * j / J);
-      const hMax = B.riempi ? Math.min(B.T, lib[k][j] - GAP) : B.T, hh = Math.max(0.05 * prof, Math.min(hMax * prof, lib[k][j] - GAP));
+      const hMax = B.riempi ? Math.min(B.T, lib[k][j] - GAP) : B.T, hh = Math.max(0.05 * prof, Math.min(hMax * prof * pieno(s, t), lib[k][j] - GAP));
       if (k < K) { tot++; if (lib[k][j] - GAP < B.T * prof) compr++; libMin = Math.min(libMin, lib[k][j]); }
       const q = c.map((x, i) => x + u[i] * s + v[i] * t + n[i] * (base[k][j] + GAP));
       if (k === K) { id[k].push([pos.length / 3, pos.length / 3]); pos.push(...q); continue; }
-      id[k].push([pos.length / 3, pos.length / 3 + 3]); pos.push(...q, ...q.map((x, i) => x + n[i] * hh));
+      id[k].push([pos.length / 3, pos.length / 3 + 1]); pos.push(...q, ...q.map((x, i) => x + n[i] * hh));
     } }
   for (let k = 0; k < K; k++) for (let j = 0; j < J; j++) { // facce superiore (1) e inferiore (0, orientata al contrario)
     const a = k ? id[k][j] : id[0][0], b = k ? id[k][(j + 1) % J] : id[0][0], c2 = id[k + 1][j], d = id[k + 1][(j + 1) % J];
