@@ -48,7 +48,8 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 5. Verifica in locale, poi commit (`Aggiunge modello <nome>`) e push su `main`.
 
 ## Anteprime e animazione della homepage
-- Dopo ogni modifica a un modello rigenerare la sua anteprima (`strumenti/anteprima.mjs`) e, per il polso,
+- Anteprima e animazione NON vanno rigenerate a ogni modifica di un modello: si fanno alla fine, quando lo chiedo.
+  Allora rigenerare l'anteprima del modello (`strumenti/anteprima.mjs`) e, per il polso,
   la sequenza della prima schermata: `node strumenti/sequenza-home.mjs polso-dito-3d`
   (salva `assets/sequenza/polso-dito-3d/l/` e `s/`; se cambia il numero di fotogrammi aggiornare `data-frames` in `index.html`).
   L'animazione segue lo scorrimento e rispetta "riduci movimento".
