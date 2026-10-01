@@ -23,7 +23,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 process.env.MODELLO ||= resolve(dirname(fileURLToPath(import.meta.url)), '..', 'modelli', 'polso-dito-3d.html');
 const G = await import('./lib-modello.mjs'); // griglia corrente: G.O, G.H, G.NX… cambiano con setGriglia
-const { man, setMesh, setGriglia, solid, edt, sample, or, clamp, sstep, log, repack, saveFile } = G;
+const { man, setMesh, setGriglia, solid, edt, sample, or, clamp, sstep, log, repack, saveFile, esatta } = G;
 
 const OSSA = ['radio', 'ulna', 'scafoide', 'semilunare', 'piramidale', 'pisiforme', 'trapezio', 'trapezoide', 'capitato', 'uncinato', 'mc1', 'mc2', 'mc3', 'mc4', 'mc5'];
 const CART = ['cartrad', 'cartuln', 'cartcarpo', 'cartmc'];
@@ -55,37 +55,6 @@ function chiuso(Do, r) {
   const A = new Uint8Array(G.N); for (let i = 0; i < G.N; i++) A[i] = Do[i] <= r ? 1 : 0;
   const E = edt(A, true), F = new Float32Array(G.N);
   for (let i = 0; i < G.N; i++) F[i] = A[i] ? r - E[i] : Do[i];
-  return F;
-}
-// distanza esatta dai triangoli delle mesh (con segno dalla normale della faccia più vicina) nei voxel entro `banda`
-// dalla superficie; altrove resta il valore della trasformata di distanza (F). Le mesh ossee sono chiuse e orientate verso l'esterno.
-function esatta(F, nomi, banda = 0.07) {
-  const best = new Float32Array(G.N).fill(1e9), sg = new Int8Array(G.N), { O, H, NX, NY, NZ } = G, NXY = NX * NY;
-  const cp = (p, a, b, c) => { // punto del triangolo più vicino a p (Ericson, Real-Time Collision Detection 5.1.5)
-    const ab = sub(b, a), ac = sub(c, a), ap = sub(p, a), d1 = dot(ab, ap), d2 = dot(ac, ap); if (d1 <= 0 && d2 <= 0) return a;
-    const bp = sub(p, b), d3 = dot(ab, bp), d4 = dot(ac, bp); if (d3 >= 0 && d4 <= d3) return b;
-    const vc = d1 * d4 - d3 * d2; if (vc <= 0 && d1 >= 0 && d3 <= 0) return add(a, mul(ab, d1 / (d1 - d3)));
-    const pc = sub(p, c), d5 = dot(ab, pc), d6 = dot(ac, pc); if (d6 >= 0 && d5 <= d6) return c;
-    const vb = d5 * d2 - d1 * d6; if (vb <= 0 && d2 >= 0 && d6 <= 0) return add(a, mul(ac, d2 / (d2 - d6)));
-    const va = d3 * d6 - d5 * d4; if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) return add(b, mul(sub(c, b), (d4 - d3) / ((d4 - d3) + (d5 - d6))));
-    const dn = 1 / (va + vb + vc); return add(a, add(mul(ab, vb * dn), mul(ac, vc * dn)));
-  };
-  const lo = [O[0], O[1], O[2]], hi = [O[0] + NX * H, O[1] + NY * H, O[2] + NZ * H];
-  for (const n of nomi) {
-    const { pos, idx } = G.REAL(n);
-    for (let t = 0; t < idx.length; t += 3) {
-      const a = [pos[3 * idx[t]], pos[3 * idx[t] + 1], pos[3 * idx[t] + 2]], b = [pos[3 * idx[t + 1]], pos[3 * idx[t + 1] + 1], pos[3 * idx[t + 1] + 2]], c = [pos[3 * idx[t + 2]], pos[3 * idx[t + 2] + 1], pos[3 * idx[t + 2] + 2]];
-      const mn = [0, 1, 2].map(k => Math.min(a[k], b[k], c[k]) - banda), mx = [0, 1, 2].map(k => Math.max(a[k], b[k], c[k]) + banda);
-      if (mx[0] < lo[0] || mx[1] < lo[1] || mx[2] < lo[2] || mn[0] > hi[0] || mn[1] > hi[1] || mn[2] > hi[2]) continue;
-      const nf = cross(sub(b, a), sub(c, a)), r = [NX, NY, NZ];
-      const i0 = [0, 1, 2].map(k => Math.max(0, Math.ceil((mn[k] - O[k]) / H - 0.5))), i1 = [0, 1, 2].map(k => Math.min(r[k] - 1, Math.floor((mx[k] - O[k]) / H - 0.5)));
-      for (let kk = i0[2]; kk <= i1[2]; kk++) for (let jj = i0[1]; jj <= i1[1]; jj++) for (let ii = i0[0]; ii <= i1[0]; ii++) {
-        const p = [O[0] + (ii + 0.5) * H, O[1] + (jj + 0.5) * H, O[2] + (kk + 0.5) * H], q = cp(p, a, b, c), d = sub(p, q), dd = len(d), id = ii + NX * jj + NXY * kk;
-        if (dd < best[id] - 1e-7) { best[id] = dd; sg[id] = dot(d, nf) >= 0 ? 1 : -1; }
-      }
-    }
-  }
-  for (let i = 0; i < G.N; i++) if (best[i] <= banda) F[i] = sg[i] * best[i];
   return F;
 }
 const unione = nomi => nomi.reduce((M, n) => or(M, solid(n)), new Uint8Array(G.N));
