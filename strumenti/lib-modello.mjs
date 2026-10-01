@@ -1,8 +1,11 @@
-/* Funzioni comuni agli strumenti che modificano le mesh incorporate in modelli/ginocchio-3d.html:
-   lettura/scrittura di bpdat/bpman, voxelizzazione, trasformata di distanza, campionamento. */
+/* Funzioni comuni agli strumenti che modificano le mesh incorporate in modelli/ginocchio-3d.html
+   (o in un altro modello indicato con MODELLO=<file>, es. il polso):
+   lettura/scrittura di bpdat/bpman, voxelizzazione, trasformata di distanza, campionamento.
+   bpdat può essere compresso con gzip (polso): viene letto e riscritto nello stesso formato. */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { gunzipSync, gzipSync, constants as Z } from 'node:zlib';
 import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const FILE = process.env.MODELLO ? resolve(process.env.MODELLO) : resolve(dirname(fileURLToPath(import.meta.url)), '..', 'modelli', 'ginocchio-3d.html'); // MODELLO=<file> per lavorare su una copia
@@ -17,14 +20,18 @@ let html = M.html;
 const reMan = /(<script id="bpman" type="application\/json">)(.*?)(<\/script>)/s;
 const reDat = /(<script id="bpdat" type="text\/plain">)(.*?)(<\/script>)/s;
 export const reManRe = reMan, reDatRe = reDat;
+const isGz = b => b[0] === 0x1f && b[1] === 0x8b;
+const leggiDat = s => { const b = Buffer.from(s.trim(), 'base64'); return isGz(b) ? gunzipSync(b) : b; };
+export const GZIP = isGz(Buffer.from(html.match(reDat)[2].trim().slice(0, 8), 'base64'));
 export let man = JSON.parse(html.match(reMan)[2]);
-export let buf0 = Buffer.from(html.match(reDat)[2].trim(), 'base64');
+export let buf0 = leggiDat(html.match(reDat)[2]);
 let ab = buf0.buffer.slice(buf0.byteOffset, buf0.byteOffset + buf0.length);
 // mesh di partenza lette da una revisione git del modello (il resto della pagina resta quello attuale):
 // così uno strumento riparte sempre dalle stesse mesh e si può rilanciare
 export function meshDaRevisione(rev) {
-  const h = execFileSync('git', ['show', `${rev}:modelli/ginocchio-3d.html`], { cwd: resolve(dirname(fileURLToPath(import.meta.url)), '..'), maxBuffer: 1 << 30 }).toString('utf8');
-  man = JSON.parse(h.match(reMan)[2]); buf0 = Buffer.from(h.match(reDat)[2].trim(), 'base64');
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const h = execFileSync('git', ['show', `${rev}:${relative(root, FILE).split('\\').join('/')}`], { cwd: root, maxBuffer: 1 << 30 }).toString('utf8');
+  man = JSON.parse(h.match(reMan)[2]); buf0 = leggiDat(h.match(reDat)[2]);
   ab = buf0.buffer.slice(buf0.byteOffset, buf0.byteOffset + buf0.length); override.clear(); topo.clear();
   return h;
 }
@@ -152,6 +159,7 @@ export function repack() {
   return Buffer.concat(parts);
 }
 export function saveFile(buf) {
+  if (GZIP) buf = gzipSync(buf, { level: Z.Z_BEST_COMPRESSION });
   const html = M.html.replace(reMan, (_, a, b, c) => a + JSON.stringify(man) + c).replace(reDat, (_, a, b, c) => a + buf.toString('base64') + c);
   writeFileSync(FILE, html); log('scritto', FILE);
 }
