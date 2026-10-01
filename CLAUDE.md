@@ -1,8 +1,14 @@
-# Atlante anatomico 3D — contesto progetto
+# MSK Atlas — contesto progetto
 
 ## Obiettivo
 Sito web statico che raccoglie modelli anatomici 3D interattivi,
 a scopo didattico (anatomia muscolo-scheletrica per radiologia). Lingua dell'interfaccia: italiano.
+
+## Nome del sito
+- Nome proprio (brand): **MSK Atlas**, ovunque il sito si presenta (header, titolo della scheda, link "‹ MSK Atlas",
+  footer, pannello "i", documentazione).
+- "Atlante anatomico 3D" è il sottotitolo/descrizione, non il nome.
+- `<title>`: homepage "MSK Atlas — Atlante anatomico 3D"; modelli "<Distretto> 3D | MSK Atlas" (es. "Ginocchio 3D | MSK Atlas").
 
 ## Materiale di partenza
 La cartella `modelli/` contiene pagine HTML autocontenute, nate come artifact di Claude:
@@ -32,7 +38,7 @@ Ogni file include dati embedded in base64 (geometrie/immagini): sono file grandi
 
 ## Aggiungere un modello
 1. Copia il file in `modelli/<nome>-3d.html` (nome minuscolo, parole separate da trattini).
-2. Nel tag `<html>` aggiungi l'attributo `data-theme="dark"`; nel `<head>` aggiungi
+2. Nel tag `<html>` aggiungi l'attributo `data-theme="dark"`; imposta il `<title>` come "<Distretto> 3D | MSK Atlas"; nel `<head>` aggiungi
    `<meta name="description" content="…">` e `<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">`;
    subito dopo `<body>` aggiungi `<script src="../assets/nav.js"></script>`. Nient'altro nel file del modello.
 3. Crea l'anteprima con `node strumenti/anteprima.mjs <nome>-3d` (server locale attivo sulla porta 8000):

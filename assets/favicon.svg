@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Atlante 3D: ginocchio come su un diafanoscopio (femore distale e tibia prossimale) -->
+  <!-- MSK Atlas: ginocchio come su un diafanoscopio (femore distale e tibia prossimale) -->
   <rect x="1" y="1" width="62" height="62" rx="15" fill="#0b141b" stroke="#72b4d0" stroke-width="2"/>
   <path fill="#cfe6f0" d="M27 6h10v10.5c0 3 7.5 4 8.5 9 .7 3.9-2 6.8-5.5 6.8-3 0-4.6-1.8-8-1.8s-5 1.8-8 1.8c-3.5 0-6.2-2.9-5.5-6.8 1-5 8.5-6 8.5-9Z"/>
   <path fill="#cfe6f0" d="M18 36.8c0-1.3 2-2 5-2 3.7 0 5.3 1.6 9 1.6s5.3-1.6 9-1.6c3 0 5 .7 5 2 0 3.9-6.5 5.7-7.2 8.5V58H25.2V45.3c-.7-2.8-7.2-4.6-7.2-8.5Z"/>

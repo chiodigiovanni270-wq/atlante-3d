@@ -1,4 +1,4 @@
-# Atlante anatomico 3D
+# MSK Atlas — Atlante anatomico 3D
 
 Sito statico con modelli anatomici 3D interattivi, a scopo didattico
 (anatomia muscolo-scheletrica per radiologia). Interfaccia in italiano, tema scuro fisso.
@@ -37,7 +37,7 @@ ed è necessario per gli script delle anteprime e della sequenza.
 Cosa controllare dopo una modifica:
 - homepage: modello in alto che ruota scorrendo, card, immagini, link (anche "Polso" / "Dito"), numeri "Tav." e conteggio dei modelli,
   barra in alto che diventa di vetro scorrendo;
-- in ogni modello: header in alto, "‹ Atlante 3D" torna alla home, pannello "i" si apre e si chiude
+- in ogni modello: header in alto, "‹ MSK Atlas" torna alla home, pannello "i" si apre e si chiude
   (su smartphone dal basso, chiudibile toccando lo sfondo; da 640 px come riquadro sotto la "i"),
   toccando una struttura si apre la scheda giusta;
 - vista smartphone (strumenti per sviluppatori del browser, 360 e 375 px) e desktop.
@@ -48,6 +48,7 @@ Cosa controllare dopo una modifica:
 2. **Righe comuni** — nel file del modello aggiungi solo queste, senza toccare altro:
    ```html
    <html lang="it" data-theme="dark">                                        <!-- attributo sul tag esistente -->
+   <title><Distretto> 3D | MSK Atlas</title>                               <!-- contenuto del <title> esistente -->
    <meta name="description" content="Modello 3D interattivo di …">         <!-- nel <head> -->
    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">     <!-- nel <head> -->
    <script src="../assets/nav.js"></script>                                 <!-- subito dopo <body> -->
