@@ -148,13 +148,13 @@ function taglia({ nome, ySink, yCut, yPieno = yCut, affonda, tendine, liscia = 0
   const T = []; for (let t = 0; t < idx.length; t += 3) { const a = idx[t], b = idx[t + 1], c = idx[t + 2]; if ((P[3 * a + 1] + P[3 * b + 1] + P[3 * c + 1]) / 3 >= yCut) T.push(a, b, c); }
   const map = new Int32Array(nv).fill(-1), np = [], nt = [], nf = [], ni = [];
   for (const o of T) { if (map[o] < 0) { map[o] = np.length / 3; np.push(P[3 * o], P[3 * o + 1], P[3 * o + 2]); if (tag) nt.push(TG[o]); if (fdir) nf.push(fdir[3 * o], fdir[3 * o + 1], fdir[3 * o + 2]); } ni.push(map[o]); }
-  // chiusura dei bordi aperti (dentro l'osso) con un ventaglio
+  // chiusura dei bordi aperti (dentro l'osso) con un ventaglio; non quelli sul piano di taglio della coscia
   const cnt = new Map(), dir = new Map(); for (let t = 0; t < ni.length; t += 3) for (let r = 0; r < 3; r++) { const a = ni[t + r], b = ni[t + (r + 1) % 3], k = Math.min(a, b) + '_' + Math.max(a, b); cnt.set(k, (cnt.get(k) || 0) + 1); dir.set(k, [a, b]); }
   const next = new Map(); for (const [k, c] of cnt) if (c === 1) { const [a, b] = dir.get(k); next.set(b, a); }
   const visti = new Set(); let loops = 0;
   for (const s0 of next.keys()) {
     if (visti.has(s0)) continue; const L = []; let v = s0; while (!visti.has(v) && next.has(v)) { visti.add(v); L.push(v); v = next.get(v); }
-    if (L.length < 3) continue; loops++;
+    if (L.length < 3 || L.every(q => Math.abs(np[3 * q + 1]) > 19)) continue; loops++; // i bordi sul piano di taglio hanno già la loro sezione: un ventaglio la duplicherebbe
     const c = np.length / 3, m = [0, 1, 2].map(k => L.reduce((s, q) => s + np[3 * q + k], 0) / L.length); np.push(...m);
     if (tag) nt.push(Math.round(L.reduce((s, q) => s + nt[q], 0) / L.length));
     if (fdir) nf.push(...[0, 1, 2].map(k => Math.round(L.reduce((s, q) => s + nf[3 * q + k], 0) / L.length)));
