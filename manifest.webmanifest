@@ -1,0 +1,16 @@
+{
+  "name": "MSK Atlas — Atlante anatomico 3D",
+  "short_name": "MSK Atlas",
+  "description": "Modelli anatomici 3D interattivi per lo studio dell'anatomia muscolo-scheletrica. Materiale didattico.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#161c23",
+  "theme_color": "#161c23",
+  "icons": [
+    { "src": "assets/icone/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icone/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icone/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
