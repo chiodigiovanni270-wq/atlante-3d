@@ -429,7 +429,9 @@ function estensori() {
     const vecchio = th <= ER.tieni && !isNaN(rOld[c]), w = sstep(ER.tieni - 30, ER.tieni, th);   // raccordo: dal vincolo pieno alla membrana libera
     T[c] = vecchio ? mix(tOld[c], ER.sp, w) : ER.sp; L[c] = rIn[c] + 0.02 + T[c] / 2; Z0[c] = vecchio ? rOld[c] : L[c] + 0.1;
     const interno = vecchio && j > 1 && j < nY - 2 && [-2, -1, 1, 2].every(d => !isNaN(rOld[c + d * nT]));      // lontano dai bordi
-    if (vecchio) { if (w <= 0 && interno) { L[c] = U[c] = rOld[c]; fisso[c] = 1; } else { const m = Math.max(w * 0.25, interno ? 0 : 0.03); L[c] = Math.max(L[c], rOld[c] - m); U[c] = rOld[c] + m; } }
+    // dove una guaina o un tendine sporge oltre il retinacolo originale (la superficie originale è più bassa di quanto serve) la cella non è bloccata: si alza di quel che basta
+    const manca = L[c] - rOld[c] > 0.005;
+    if (vecchio) { if (w <= 0 && interno && manca) { U[c] = L[c] + 0.35; } else if (w <= 0 && interno) { L[c] = U[c] = rOld[c]; fisso[c] = 1; } else { const m = Math.max(w * 0.25, interno ? 0 : 0.03); L[c] = Math.max(L[c], rOld[c] - m); U[c] = rOld[c] + m; } }
     const [a0, a1, b0, b1] = ER.inserzione;
     if (th >= a0 && th <= a1 && y >= b0 && y <= b1 && rOs[c] > 1) { L[c] = U[c] = Math.max(rOs[c], rF[c]) + T[c] / 2 - 0.03; } // su pisiforme e piramidale; dove c'è il FCU, sulla sua fascia
   }
