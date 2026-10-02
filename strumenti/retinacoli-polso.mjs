@@ -304,7 +304,8 @@ function volari() {
   const tcl = lamina({
     P: TCL, sp: spT, p: 0.08, liscia: 14, toll: 0.02,
     appoggi: [Float32Array.from(tB, v => v - 0.03), Float32Array.from(tP, v => v - 0.03), cima(dilata(or(cont, fcr), 0.03))],
-    altri: maschTubi(['npalm', 'nmedmot', 'aradsup', 'nulnprof', 'aulnprof']), soloSopra: muscoli, sopra: maschTubi(['nuln', 'auln', 'nulnsup']), // il palmare lungo si fonde con la faccia superficiale
+    altri: maschTubi(['npalm', 'nmedmot', 'nulnprof', 'aulnprof']), soloSopra: muscoli, sopra: maschTubi(['nuln', 'auln', 'nulnsup', 'aradsup']), // il palmare lungo si fonde con la faccia superficiale
+    // il ramo palmare superficiale della radiale corre sul margine radiale, superficiale al retinacolo (nei tenari)
     ancore: [{ zona: inZone(INS_TCL.scafoide), cima: tB, min: 0.35 }, { zona: inZone(INS_TCL.trapezio), cima: tB, min: 0.85 },
       { zona: inZone(INS_TCL.pisiforme), cima: ossoPis, min: 1.0 }, { zona: inZone(INS_TCL.uncino), cima: ossoPis, min: 0.7 }],
   });
