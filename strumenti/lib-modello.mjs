@@ -45,6 +45,16 @@ export function posDaRevisione(rev, name, file) {
   for (let i = 0; i < m.nv * 3; i++) { const k = i % 3; pos[i] = mn.min[k] + q[i] / 65535 * (mn.max[k] - mn.min[k]); }
   return pos;
 }
+// mesh completa (posizioni e indici) letta da una revisione git del modello: per ripartire da una forma che lo strumento sostituisce
+export function realDaRevisione(rev, name, file) {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const h = execFileSync('git', ['show', `${rev}:${file || relative(root, FILE).split('\\').join('/')}`], { cwd: root, maxBuffer: 1 << 30 }).toString('utf8');
+  const mn = JSON.parse(h.match(reMan)[2]), b = leggiDat(h.match(reDat)[2]), m = mn.meshes.findLast(x => x.n === name);
+  const q = new Uint16Array(b.buffer.slice(b.byteOffset + m.p, b.byteOffset + m.p + m.nv * 6)), pos = new Float32Array(m.nv * 3);
+  for (let i = 0; i < m.nv * 3; i++) { const k = i % 3; pos[i] = mn.min[k] + q[i] / 65535 * (mn.max[k] - mn.min[k]); }
+  const ib = b.buffer.slice(b.byteOffset + m.i, b.byteOffset + m.i + m.ni * (m.i16 ? 2 : 4));
+  return { pos, idx: m.i16 ? new Uint16Array(ib) : new Uint32Array(ib) };
+}
 // posizioni correnti (modificabili con setPos prima della voxelizzazione)
 const override = new Map();
 export function setPos(name, pos) { override.set(name, pos); const t = topo.get(name); if (t) t.pos = pos; }
@@ -172,6 +182,105 @@ export function esatta(F, nomi, banda = 0.07) {
   for (let i = 0; i < N; i++) if (best[i] <= banda) F[i] = sg[i] * best[i];
   return F;
 }
+
+/* ============ Superfici implicite (strumenti del polso) ============ */
+const { add, sub, mul, dot, cross } = v3, nrm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+// imposta una griglia che contiene il riquadro [lo, hi] (+ margine) e restituisce i suoi parametri
+export function griglia(lo, hi, h = 0.02, pad = 0.45) {
+  const o = lo.map(v => v - pad), n = hi.map((v, k) => Math.ceil((v + pad - o[k]) / h));
+  setGriglia(o, h, n[0], n[1], n[2]); return { o, h, nx: n[0], ny: n[1], nz: n[2] };
+}
+// distanza con segno da un solido voxelizzato (negativa dentro)
+export function sdf(M) {
+  const Do = edt(M), Di = edt(M, true), F = new Float32Array(N), h2 = H / 2;
+  for (let i = 0; i < N; i++) F[i] = M[i] ? -(Di[i] - h2) : Do[i] - h2;
+  return { F, Do };
+}
+// chiusura morfologica di raggio r: la superficie scavalca rime articolari e piccole concavità
+export function chiuso(Do, r) {
+  const A = new Uint8Array(N); for (let i = 0; i < N; i++) A[i] = Do[i] <= r ? 1 : 0;
+  const E = edt(A, true), F = new Float32Array(N);
+  for (let i = 0; i < N; i++) F[i] = A[i] ? r - E[i] : Do[i];
+  return F;
+}
+export const unione = nomi => nomi.reduce((M, n) => or(M, solid(n)), new Uint8Array(N));
+// gradiente (non normalizzato) di un campo: array campionato sulla griglia corrente oppure { s: funzione(p) }
+export const grad = (F, p, e = H * 0.75) => { const f = F.s || ((x, y, z) => sample(F, x, y, z)), g = F.s ? (x, y, z) => f([x, y, z]) : f;
+  return [g(p[0] + e, p[1], p[2]) - g(p[0] - e, p[1], p[2]), g(p[0], p[1] + e, p[2]) - g(p[0], p[1] - e, p[2]), g(p[0], p[1], p[2] + e) - g(p[0], p[1], p[2] - e)]; };
+// sfocatura (box 3×3×3, più passate): toglie la gradinatura dei campi di distanza
+export function sfoca(F, passate = 2) {
+  let A = F, Bf = new Float32Array(F.length);
+  for (let p = 0; p < passate; p++) for (const [st, n] of [[1, NX], [NX, NY], [NXY, NZ]]) {
+    for (let i = 0; i < A.length; i++) { const c = ((i / st) | 0) % n; Bf[i] = (A[c > 0 ? i - st : i] + A[i] + A[c < n - 1 ? i + st : i]) / 3; }
+    [A, Bf] = [Bf, A];
+  }
+  return A === F ? F : (F.set(A), F);
+}
+// porta p sulla superficie di livello lev del campo f(p) (funzione) con passi di Newton lungo il gradiente
+export function proietta(f, p, lev, it = 8) {
+  for (let i = 0; i < it; i++) {
+    const e = H * 0.75, v = f(p) - lev;
+    const g = [f([p[0] + e, p[1], p[2]]) - f([p[0] - e, p[1], p[2]]), f([p[0], p[1] + e, p[2]]) - f([p[0], p[1] - e, p[2]]), f([p[0], p[1], p[2] + e]) - f([p[0], p[1], p[2] - e])].map(x => x / (2 * e));
+    const g2 = dot(g, g) || 1; p = sub(p, mul(g, clamp(v / g2, -0.15, 0.15)));
+    if (Math.abs(v) < 1e-4) break;
+  }
+  return p;
+}
+
+/* ============ Smussatura di Taubin (non restringe la forma) ============ */
+export function taubin(pos, I, iter) {
+  const nv = pos.length / 3, nb = Array.from({ length: nv }, () => new Set());
+  for (let t = 0; t < I.length; t += 3) { const a = I[t], b = I[t + 1], c = I[t + 2]; nb[a].add(b).add(c); nb[b].add(a).add(c); nb[c].add(a).add(b); }
+  const NB = nb.map(s => [...s]);
+  for (let it = 0; it < iter; it++) {
+    const lam = it % 2 ? -0.53 : 0.5, q = pos.slice();
+    for (let i = 0; i < nv; i++) { const L = NB[i]; if (!L.length) continue; let x = 0, y = 0, z = 0; for (const j of L) { x += pos[3 * j]; y += pos[3 * j + 1]; z += pos[3 * j + 2]; }
+      q[3 * i] += lam * (x / L.length - pos[3 * i]); q[3 * i + 1] += lam * (y / L.length - pos[3 * i + 1]); q[3 * i + 2] += lam * (z / L.length - pos[3 * i + 2]); }
+    pos = q;
+  }
+  return pos;
+}
+
+/* ============ Surface nets su un campo campionato ai centri dei voxel ============ */
+export function nets(V, fd) {
+    const cx = NX - 1, cy = NY - 1, cz = NZ - 1, C = new Int32Array(cx * cy * cz).fill(-1), P = [];
+  const CO = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+  const ED = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  const v = new Float32Array(8);
+  for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) {
+    const b = i + NX * j + NXY * k; let m = 0;
+    for (let c = 0; c < 8; c++) { v[c] = V[b + CO[c][0] + CO[c][1] * NX + CO[c][2] * NXY]; if (v[c] < 0) m |= 1 << c; }
+    if (m === 0 || m === 255) continue;
+    let ax = 0, ay = 0, az = 0, n = 0;
+    for (const [a, bb] of ED) if ((v[a] < 0) !== (v[bb] < 0)) { const t = v[a] / (v[a] - v[bb]); ax += CO[a][0] + (CO[bb][0] - CO[a][0]) * t; ay += CO[a][1] + (CO[bb][1] - CO[a][1]) * t; az += CO[a][2] + (CO[bb][2] - CO[a][2]) * t; n++; }
+    C[i + cx * j + cx * cy * k] = P.length / 3;
+    P.push(O[0] + (i + 0.5 + ax / n) * H, O[1] + (j + 0.5 + ay / n) * H, O[2] + (k + 0.5 + az / n) * H);
+  }
+  const id = (i, j, k) => C[i + cx * j + cx * cy * k], I = [];
+  const quad = (a, b, c, d) => { if (a >= 0 && b >= 0 && c >= 0 && d >= 0) I.push(a, b, c, a, c, d); };
+  for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) {
+    if (id(i, j, k) < 0) continue; const b = i + NX * j + NXY * k, s0 = V[b] < 0;
+    if (j > 0 && k > 0 && s0 !== (V[b + 1] < 0)) quad(id(i, j, k), id(i, j - 1, k), id(i, j - 1, k - 1), id(i, j, k - 1));
+    if (i > 0 && k > 0 && s0 !== (V[b + NX] < 0)) quad(id(i, j, k), id(i, j, k - 1), id(i - 1, j, k - 1), id(i - 1, j, k));
+    if (i > 0 && j > 0 && s0 !== (V[b + NXY] < 0)) quad(id(i, j, k), id(i - 1, j, k), id(i - 1, j - 1, k), id(i, j - 1, k));
+  }
+  // triangoli orientati con la normale verso l'esterno (gradiente del campo)
+  for (let t = 0; t < I.length; t += 3) {
+    const [a, b, c] = [I[t], I[t + 1], I[t + 2]].map(q => [P[3 * q], P[3 * q + 1], P[3 * q + 2]]);
+    const m = mul(add(add(a, b), c), 1 / 3), gr = grad(V, m);
+    if (dot(cross(sub(b, a), sub(c, a)), gr) < 0) { const x = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = x; }
+  }
+  let pos = new Float32Array(P);
+  pos = taubin(pos, I, 12); const nv = pos.length / 3;
+  const fdir = new Int8Array(nv * 3);
+  for (let i = 0; i < nv; i++) { const d = nrm(fd([pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]])); for (let k = 0; k < 3; k++) fdir[3 * i + k] = Math.round(d[k] * 127); }
+  return { pos, idx: Uint32Array.from(I), tag: null, fdir };
+}
+
+// campo con segno di un gruppo di mesh nella griglia corrente: trasformata di distanza + distanza esatta vicino alla superficie
+export const campo = nomi => { const M = unione(nomi), { F, Do } = sdf(M); return { F: esatta(sfoca(F, 1), nomi, 0.1), Do }; };
+export const voxel = id => [O[0] + (id % NX + 0.5) * H, O[1] + (((id / NX) | 0) % NY + 0.5) * H, O[2] + (((id / (NX * NY)) | 0) + 0.5) * H];
+export const valuta = g => { const V = new Float32Array(N); for (let id = 0; id < N; id++) V[id] = g(voxel(id)); return V; };
 
 /* ============ Scrittura ============ */
 // sovrascrive sul posto le posizioni (stesso numero di vertici) di una mesh esistente
