@@ -184,6 +184,36 @@ function cute() {
   log('cute sollevata sopra i nervi:', mossi, 'vertici, fino a', (mx * 10).toFixed(1), 'mm');
 }
 
+/* ============ 0) Versante volare: nervi fuori da tendini, muscoli e retinacoli ============ */
+const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggio)
+  'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
+  'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
+  'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
+  'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4'],
+};
+// nel tunnel carpale il mediano è appiattito (sezione ovale, larga e bassa a parità di area): rapporto altezza/larghezza
+const TUNNEL = { y: [-2.8, -0.4], rampa: 0.6, rapporto: 0.55 };
+const rtTunnel = y => 1 - (1 - TUNNEL.rapporto) * sstep(TUNNEL.y[0] - TUNNEL.rampa, TUNNEL.y[0], y) * (1 - sstep(TUNNEL.y[1], TUNNEL.y[1] + TUNNEL.rampa, y));
+const rEff = (id, y, r) => id === 'nmed' ? r * Math.sqrt(rtTunnel(y)) : r;   // raggio nella direzione volare-dorsale
+const GIOCO_V = 0.03;   // distanza minima (cm) oltre il raggio
+function volari(T) {
+  for (const [chiave, nomi] of Object.entries(VOLARI)) {
+    const [id, b] = chiave.split(':'), t = T[id][+b], r = t.r;
+    const P = ricampiona(t.pts, 0.1), n = P.length;
+    const lo = [0, 1, 2].map(k => Math.min(...P.map(p => p[k]))), hi = [0, 1, 2].map(k => Math.max(...P.map(p => p[k])));
+    griglia(lo, hi, 0.03, 0.4);
+    const Fs = nomi.filter(m => man.meshes.some(x => x.n === m)).map(m => campo([m]).F);
+    const gr = (F, p) => { const e = 0.05, g = [0, 1, 2].map(k => { const a = p.slice(), c = p.slice(); a[k] += e; c[k] -= e; return sample(F, ...a) - sample(F, ...c); }); return nrm(g); };
+    const fx = new Set([n - 1]), y0 = P[0][1];   // l'estremo prossimale (piano di sezione) scorre sul piano; quello distale è l'origine dei rami
+    // filo teso: smussatura e vincoli alternati (come per i rami dorsali), così la linea scavalca gli ostacoli senza spigoli
+    const spingi = k => { for (let i = 0; i < n - 1; i++) for (const F of Fs) { const d = sample(F, ...P[i]) - rEff(id, P[i][1], r) - GIOCO_V; if (d < 0) P[i] = add(P[i], mul(gr(F, P[i]), -d * k)); } };
+    for (let it = 0; it < 1500; it++) { spingi(0.8); P[0][1] = y0; smussa(P, 2, fx); P[0][1] = y0; }
+    for (let it = 0; it < 40; it++) spingi(1);
+    const sp = Math.max(...P.map((p, i) => len(sub(p, aAscissa(t.pts, ascisse(t.pts), ascisse(P)[i] * ascisse(t.pts).at(-1) / ascisse(P).at(-1)).p))));
+    t.pts = P; log(chiave, 'versante volare: scostamento massimo', (sp * 10).toFixed(1), 'mm');
+  }
+}
+
 /* ============ 2) Divisioni ============ */
 function divisioni(T) {
   for (const { da, a, aff, racc, k, ricorrente } of DIV) {
@@ -213,7 +243,14 @@ function divisioni(T) {
   for (const [chiave, f] of Object.entries(FINE)) {
     const [id, b] = chiave.split(':'), t = T[id][+b], L = ascisse(t.pts).at(-1);
     if (f.fin) t.o.fin = f.fin;
-    if (f.piatto) { const t0 = fmt(Math.max(0, 1 - f.piatto[1] / L)); t.o.piatto = [[t0, 1], [1, f.piatto[0]]]; t.o.wdir = [1, 0, 0]; }
+    const tunnel = id === 'nmed' && +b === 0, pts = t.pts, S = ascisse(pts);
+    if (f.piatto || tunnel) { // rapporto altezza/larghezza lungo il tubo: appiattimento finale e, per il mediano, tunnel carpale
+      const prof = u => { const s = u * L; let q = 1;
+        if (f.piatto) q = Math.min(q, 1 - (1 - f.piatto[0]) * sstep(L - f.piatto[1], L, s));
+        if (tunnel) q = Math.min(q, rtTunnel(aAscissa(pts, S, s).p[1]));
+        return q; };
+      t.o.piatto = Array.from({ length: 41 }, (_, i) => [fmt(i / 40), fmt(prof(i / 40))]); t.o.wdir = [1, 0, 0];
+    }
   }
 }
 
@@ -245,7 +282,7 @@ function verifica() {
     for (const c of (CONTRO[id] || [])) {
       if (!man.meshes.some(m => m.n === c)) continue;
       const { F } = campo([c]); let n = 0, peggio = 0, dove = null;
-      for (const p of P) { const d = sample(F, ...p) - r; if (d < -0.02) { n++; if (d < peggio) { peggio = d; dove = p; } } }
+      for (const p of P) { const d = sample(F, ...p) - rEff(id, p[1], r); if (d < -0.02) { n++; if (d < peggio) { peggio = d; dove = p; } } }
       if (n) log(`  ${id}[${b}] dentro ${c}: ${n} punti (fino a ${(-peggio * 10).toFixed(1)} mm, y = ${dove[1].toFixed(2)})`);
     }
     if (SOTTOCUTE[id]) { G.griglia(lo, hi, 0.03, 0.4); const { F } = campo(['cute']); const fuori = P.filter(p => sample(F, ...p) > -r).length;
@@ -258,6 +295,7 @@ if (process.argv.includes('verifica')) verifica();
 else {
   G.setPos('cute', G.posDaRevisione(ORIGINALE, 'cute', FILE_REPO));
   const T = Object.fromEntries(NERVI.map(id => [id, leggi(rigaOriginale(id))]));
+  volari(T);
   sottocute(T);
   cute();
   divisioni(T);
