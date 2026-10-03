@@ -192,7 +192,7 @@ function cute() {
 /* ============ 0) Versante volare: nervi fuori da tendini, muscoli e retinacoli ============ */
 const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggio)
   'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
-  'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
+  'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1', 'pl'],
   'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
   'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'mc3', 'mc2', 'capitato', 'trapezoide', 'fcu'],   // non 'add': il ramo profondo termina nell'adduttore del pollice, che innerva
   // nervi digitali comuni: profondi all'aponeurosi palmare (`pl`), sopra i tendini flessori e i lombricali
@@ -259,6 +259,9 @@ const RAMPA = { 'nuln:0': 2.0 };
 const SPOST_MAX = 1.0;   // spostamento massimo di un punto dal decorso di partenza (cm): evita che un vincolo mal posto scagli il nervo lontano
 const GIOCO_V = 0.03;
 const GIOCO_DIG = 0.01;   // i nervi digitali passano in un corridoio stretto tra aponeurosi, lombricali e interossei
+// gioco ridotto (cm) per singoli tubi e ostacoli: il ramo motorio ricorrente risale nel varco stretto tra il margine
+// radiale dell'aponeurosi palmare e l'opponente del pollice, sfiorando l'aponeurosi senza attraversarla
+const GIOCO_T = { 'nmedmot:0': { pl: 0.01 } };
 // priorità degli ostacoli dove lo spazio non basta (spinta proporzionale alla compenetrazione per il peso): nell'avambraccio
 // distale lo spazio tra guaina del FCR e FDP è più stretto del mediano; il compromesso cade sul FDP, su cui il nervo poggia
 const PESO_V = { gfcr: 2 };
@@ -287,7 +290,7 @@ function volari(T) {
     const lato0 = P.map(p => Fs.map(F => sample(F, ...p) - r > -0.02 ? gr(F, p) : null));
     const spinte = () => P.map((p, i) => { let f = [0, 0, 0], att = false; Fs.forEach((F, j) => {
       if (noms[j] === 'pl' && SOTTO_PL.includes(id) && p[1] < Y_PL) return;   // oltre le digitazioni dell'aponeurosi (testa dei metacarpali) i nervi digitali ne escono
-      const { d: d0, q } = peggioreContorno(F, id, p, r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0) * sstep(Y_SETTO[0], Y_SETTO[1], p[1]), g = SOTTO_PL.includes(id) ? GIOCO_DIG : GIOCO_V, d = d0 - (ex - GIOCO_V); if (d - g >= 0) return;
+      const { d: d0, q } = peggioreContorno(F, id, p, r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0) * sstep(Y_SETTO[0], Y_SETTO[1], p[1]), g = SOTTO_PL.includes(id) ? GIOCO_DIG : GIOCO_T[chiave]?.[noms[j]] ?? GIOCO_V, d = d0 - (ex - GIOCO_V); if (d - g >= 0) return;
       // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola;
       const telo = noms[j] === 'pl' && SOTTO_PL.includes(id);
       // per l'aponeurosi la direzione è quella del gradiente, ribaltata verso il dorso se punta in senso volare: lontano
@@ -332,8 +335,10 @@ function volari(T) {
 const ACCORCIA = { nmed: 0.5 };
 // ramo motorio ricorrente (tenare): dal lato radiale del mediano al margine distale del retinacolo curva subito in senso
 // radiale e prossimale (ricorrente) ed entra nei muscoli tenari tra APB e FPB (Lanz U, J Hand Surg Am 1977; Standring S,
-// Gray's Anatomy). Decorso ridisegnato dal punto di divisione: punti dopo il primo (cm), l'ultimo è quello originale
-const RIDISEGNA = { nmedmot: [[-2.0, -3.33, 1.12], [-2.1, -3.43, 1.36], [-2.2, -3.44, 1.62], [-2.35, -3.34, 1.84], [-2.547, -3.181, 1.979]] };
+// Gray's Anatomy). Decorso ridisegnato dal punto di divisione: punti dopo il primo (cm), l'ultimo è quello originale.
+// Resta profondo all'aponeurosi palmare (`pl`) fino al suo margine radiale e risale nel varco tra aponeurosi e FPB,
+// sopra l'opponente: non attraversa l'aponeurosi
+const RIDISEGNA = { nmedmot: [[-1.84, -3.05, 1.02], [-1.92, -3.28, 1.02], [-2.0, -3.39, 1.2], [-2.05, -3.44, 1.48], [-2.13, -3.44, 1.8], [-2.33, -3.35, 1.98], [-2.547, -3.181, 1.979]] };
 function accorcia(T) {
   for (const [id, cut] of Object.entries(ACCORCIA)) {
     const tr = T[id][0], P = ricampiona(tr.pts, 0.05), S = ascisse(P), L = S.at(-1), E = P.at(-1);
@@ -419,7 +424,7 @@ function scrivi(T) {
 const CONTRO = {
   nradsup: ['retext', 'g1', 'g2', 'g3', 'apl', 'epb', 'epl', 'ecrl', 'ecrb', 'br', 'radio', 'scafoide', 'trapezio', 'mc1', 'mc2', 'iod', 'add'],
   nulndors: ['retext', 'g5', 'g6', 'ecu', 'edm', 'edc', 'fcu', 'ulna', 'piramidale', 'uncinato', 'mc4', 'mc5', 'adm'],
-  nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op'],
+  nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op', 'pl'],
   ndig: ['pl', 'retfl', 'fds', 'fdp', 'lumb'], nuln: ['fcu', 'pisiforme', 'retfl', 'tettoguy'], nulnsup: ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm'],
   nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'capitato', 'mc2', 'mc3', 'mc4', 'mc5', 'trapezoide'],
 };
