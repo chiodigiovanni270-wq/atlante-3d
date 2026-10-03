@@ -186,7 +186,7 @@ function cute() {
 
 /* ============ 0) Versante volare: nervi fuori da tendini, muscoli e retinacoli ============ */
 const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggio)
-  'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
+  'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
   'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
   'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
   'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4'],
@@ -201,7 +201,7 @@ const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggi
 // tutti gli altri estremi sono origini o divisioni e restano dove sono
 const LIBERI = { 'nmed:0': [1, 0], 'nuln:0': [1, 0], 'ndig:0': [0, 1], 'ndig:1': [0, 1], 'ndig:2': [0, 1], 'nulnsup:0': [0, 1], 'nulnsup:1': [0, 1] };
 // nel tunnel carpale il mediano è appiattito (sezione ovale, larga e bassa a parità di area): rapporto altezza/larghezza
-const TUNNEL = { y: [-2.8, -0.4], rampa: 0.6, rapporto: 0.55 };
+const TUNNEL = { y: [-2.8, -0.4], rampa: 0.6, rapporto: 0.7 };
 const rtTunnel = y => 1 - (1 - TUNNEL.rapporto) * sstep(TUNNEL.y[0] - TUNNEL.rampa, TUNNEL.y[0], y) * (1 - sstep(TUNNEL.y[1], TUNNEL.y[1] + TUNNEL.rampa, y));
 const rEff = (id, y, r) => id === 'nmed' ? r * Math.sqrt(rtTunnel(y)) : r;   // raggio nella direzione volare-dorsale
 // sezione ovale del mediano (tronco): punti del contorno nel piano x-z, semiassi larghezza r/√rt e altezza r√rt
@@ -213,7 +213,8 @@ function peggioreContorno(F, id, p, r) {
   let d = 1e9, q = p, c = null; for (const o of C) { const x = add(p, o), e = sample(F, ...x); if (e < d) { d = e; q = x; c = o; } } return { d, q, c };
 }
 const SOTTO_PL = ['ndig', 'nulnsup'];   // nervi che stanno sempre profondi all'aponeurosi palmare
-const GIOCO_V = 0.03;   // distanza minima (cm) oltre il raggio
+const GIOCO_V = 0.03;
+const EXTRA_V = { gfcr: 0.04 };   // spazio per la lamina profonda del retinacolo tra il tunnel del FCR e il mediano (cm)   // distanza minima (cm) oltre il raggio
 function volari(T) {
   for (const [chiave, nomi] of Object.entries(VOLARI)) {
     const [id, b] = chiave.split(':'), t = T[id][+b], r = t.r;
@@ -224,7 +225,7 @@ function volari(T) {
     const gr = (F, p) => { const e = 0.05, g = [0, 1, 2].map(k => { const a = p.slice(), c = p.slice(); a[k] += e; c[k] -= e; return sample(F, ...a) - sample(F, ...c); }); return nrm(g); };
     const [l0, l1] = LIBERI[chiave] || [0, 0], fx = new Set([...(l0 ? [] : [0]), ...(l1 ? [] : [n - 1])]), y0 = P[0][1], y1 = P[n - 1][1];
     // filo teso: smussatura e vincoli alternati (come per i rami dorsali), così la linea scavalca gli ostacoli senza spigoli
-    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => { const { d, q } = peggioreContorno(F, id, P[i], r); if (d - GIOCO_V >= 0) return;
+    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => { const { d: d0, q } = peggioreContorno(F, id, P[i], r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0), d = d0 - (ex - GIOCO_V); if (d - GIOCO_V >= 0) return;
       // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola
       const dir = noms[j] === 'pl' && SOTTO_PL.includes(id) ? [0, 0, -1] : gr(F, q); P[i] = add(P[i], mul(dir, -(d - GIOCO_V) * k)); }); } };
     const piani = () => { P[0][1] = y0; P[n - 1][1] = y1; };

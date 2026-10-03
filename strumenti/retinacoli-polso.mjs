@@ -46,7 +46,8 @@ const VCL = [ // legamento carpale volare: ulnare (FCU, pisiforme) → distale �
   [0.05, -0.92], [0.45, -0.9], [0.72, -1.08], [0.8, -1.45], [0.74, -1.85], [0.52, -2.14], [0.15, -2.3], [-0.3, -2.3],
   [-0.58, -2.12], [-0.6, -1.72], [-0.52, -1.3], [-0.38, -0.98]];
 const MUSC_MANO = ['apb', 'op', 'fpb', 'adm', 'fdm', 'odm']; // tenari e ipotenari: originano dalla faccia volare del retinacolo
-const SP = { tcl: 0.17, tclPross: 0.07, tclDist: 0.1, vcl: 0.06, setto: 0.06 }; // spessori (cm)
+const SETTO_DIST = 0.04;   // distanza della lamina profonda dal tunnel del FCR (cm)
+const SP = { tcl: 0.17, tclPross: 0.07, tclDist: 0.1, vcl: 0.06, setto: 0.04 }; // spessori (cm)
 const H_VOL = 0.03;  // passo della griglia (cm)
 const ORIGINALE = '4b64b75';   // revisione con muscoli e retinacolo degli estensori originali (punto di partenza)
 
@@ -349,8 +350,10 @@ function volari() {
   griglia([-2.95, -2.5, 0.3], [-1.2, -0.9, 1.95], 0.03, 0);
   const dA = edt(unione(FCR)), dB = edt(or(unione(CONTENUTO), maschTubi(['nmed']))), V3 = new Float32Array(G.N);
   for (let id = 0; id < G.N; id++) {
-    const p = voxel(id); if (dA[id] > 0.32) { V3[id] = 1; continue; }
-    let w = Math.abs(dA[id] - dB[id]) - SP.setto / 2;
+    const p = voxel(id); if (dA[id] > 0.7) { V3[id] = 1; continue; }
+    // manicotto continuo attorno al tunnel del FCR (guaina e tendine), a distanza fissa SETTO_DIST dalla sua superficie:
+    // non dipende dalla posizione del nervo (la lamina profonda separa sempre il FCR dal tunnel carpale)
+    let w = Math.abs(dA[id] - SETTO_DIST) - SP.setto / 2;
     w = Math.max(w, 0.012 - dA[id], 0.012 - dB[id], p[2] - (piano(tcl.Z, p[0], p[1]) - piano(tcl.T, p[0], p[1]) / 2 + 0.02), piano(tcl.E, p[0], p[1]) + 0.05);
     V3[id] = smax(w, Math.max(p[1] + 1.0, -2.38 - p[1]), 0.03);                           // estremità nette (trapezio, da −1,0 a −2,38)
   }
