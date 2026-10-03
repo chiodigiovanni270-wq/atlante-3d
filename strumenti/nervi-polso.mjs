@@ -57,7 +57,7 @@ const DIV = [
   { da: ['nmed', 0], a: ['nmedmot', 0], aff: 0.3, racc: 0.6, k: 0.75, ricorrente: 0.35 },
   { da: ['nmed', 0], a: ['ndig', 0], aff: 1.4, racc: 1.4, k: 0.75 },
   { da: ['nmed', 0], a: ['ndig', 1], aff: 1.1, racc: 1.2, k: 0.55 },
-  { da: ['nmed', 0], a: ['ndig', 2], aff: 1.25, racc: 1.4, k: 0.75 },
+  { da: ['nmed', 0], a: ['ndig', 2], aff: 1.25, racc: 0.7, k: 0.3 },
   { da: ['nuln', 0], a: ['nulndors', 0], aff: 1.1, racc: 1.4, k: 0.8 },
   { da: ['nuln', 0], a: ['nulnsup', 0], aff: 0.9, racc: 1.0, k: 0.7 },
   { da: ['nuln', 0], a: ['nulnprof', 0], aff: 0.8, racc: 0.6, k: 0.7 },
@@ -190,11 +190,29 @@ const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggi
   'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
   'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
   'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4'],
+  // nervi digitali comuni: profondi all'aponeurosi palmare (`pl`), sopra i tendini flessori e i lombricali
+  'ndig:0': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
+  'ndig:1': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
+  'ndig:2': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add', 'apb', 'fpb'],
+  'nulnsup:0': ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm', 'fdm', 'fds', 'fdp', 'lumb', 'mc4', 'mc5'],
+  'nulnsup:1': ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm', 'fdm', 'fds', 'fdp', 'lumb', 'mc4', 'mc5'],
 };
+// estremi liberi di scorrere sul loro piano (y fisso): inizio del tronco (piano di sezione) e fine dei rami digitali;
+// tutti gli altri estremi sono origini o divisioni e restano dove sono
+const LIBERI = { 'nmed:0': [1, 0], 'nuln:0': [1, 0], 'ndig:0': [0, 1], 'ndig:1': [0, 1], 'ndig:2': [0, 1], 'nulnsup:0': [0, 1], 'nulnsup:1': [0, 1] };
 // nel tunnel carpale il mediano è appiattito (sezione ovale, larga e bassa a parità di area): rapporto altezza/larghezza
 const TUNNEL = { y: [-2.8, -0.4], rampa: 0.6, rapporto: 0.55 };
 const rtTunnel = y => 1 - (1 - TUNNEL.rapporto) * sstep(TUNNEL.y[0] - TUNNEL.rampa, TUNNEL.y[0], y) * (1 - sstep(TUNNEL.y[1], TUNNEL.y[1] + TUNNEL.rampa, y));
 const rEff = (id, y, r) => id === 'nmed' ? r * Math.sqrt(rtTunnel(y)) : r;   // raggio nella direzione volare-dorsale
+// sezione ovale del mediano (tronco): punti del contorno nel piano x-z, semiassi larghezza r/√rt e altezza r√rt
+const OVALE = [...Array(12).keys()].map(i => i / 12 * 2 * Math.PI);
+const contorno = (id, y, r) => id !== 'nmed' ? null : OVALE.map(a => [r / Math.sqrt(rtTunnel(y)) * Math.cos(a), 0, r * Math.sqrt(rtTunnel(y)) * Math.sin(a)]);
+// quota (distanza dal campo F meno il raggio) peggiore sul contorno della sezione, e il suo punto
+function peggioreContorno(F, id, p, r) {
+  const C = contorno(id, p[1], r); if (!C) return { d: sample(F, ...p) - r, q: p, c: [0, 0, 0] };
+  let d = 1e9, q = p, c = null; for (const o of C) { const x = add(p, o), e = sample(F, ...x); if (e < d) { d = e; q = x; c = o; } } return { d, q, c };
+}
+const SOTTO_PL = ['ndig', 'nulnsup'];   // nervi che stanno sempre profondi all'aponeurosi palmare
 const GIOCO_V = 0.03;   // distanza minima (cm) oltre il raggio
 function volari(T) {
   for (const [chiave, nomi] of Object.entries(VOLARI)) {
@@ -202,12 +220,15 @@ function volari(T) {
     const P = ricampiona(t.pts, 0.1), n = P.length;
     const lo = [0, 1, 2].map(k => Math.min(...P.map(p => p[k]))), hi = [0, 1, 2].map(k => Math.max(...P.map(p => p[k])));
     griglia(lo, hi, 0.03, 0.4);
-    const Fs = nomi.filter(m => man.meshes.some(x => x.n === m)).map(m => campo([m]).F);
+    const noms = nomi.filter(m => man.meshes.some(x => x.n === m)), Fs = noms.map(m => campo([m]).F);
     const gr = (F, p) => { const e = 0.05, g = [0, 1, 2].map(k => { const a = p.slice(), c = p.slice(); a[k] += e; c[k] -= e; return sample(F, ...a) - sample(F, ...c); }); return nrm(g); };
-    const fx = new Set([n - 1]), y0 = P[0][1];   // l'estremo prossimale (piano di sezione) scorre sul piano; quello distale è l'origine dei rami
+    const [l0, l1] = LIBERI[chiave] || [0, 0], fx = new Set([...(l0 ? [] : [0]), ...(l1 ? [] : [n - 1])]), y0 = P[0][1], y1 = P[n - 1][1];
     // filo teso: smussatura e vincoli alternati (come per i rami dorsali), così la linea scavalca gli ostacoli senza spigoli
-    const spingi = k => { for (let i = 0; i < n - 1; i++) for (const F of Fs) { const d = sample(F, ...P[i]) - rEff(id, P[i][1], r) - GIOCO_V; if (d < 0) P[i] = add(P[i], mul(gr(F, P[i]), -d * k)); } };
-    for (let it = 0; it < 1500; it++) { spingi(0.8); P[0][1] = y0; smussa(P, 2, fx); P[0][1] = y0; }
+    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => { const { d, q } = peggioreContorno(F, id, P[i], r); if (d - GIOCO_V >= 0) return;
+      // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola
+      const dir = noms[j] === 'pl' && SOTTO_PL.includes(id) ? [0, 0, -1] : gr(F, q); P[i] = add(P[i], mul(dir, -(d - GIOCO_V) * k)); }); } };
+    const piani = () => { P[0][1] = y0; P[n - 1][1] = y1; };
+    for (let it = 0; it < 1500; it++) { spingi(0.8); piani(); smussa(P, 2, fx); piani(); }
     for (let it = 0; it < 40; it++) spingi(1);
     const sp = Math.max(...P.map((p, i) => len(sub(p, aAscissa(t.pts, ascisse(t.pts), ascisse(P)[i] * ascisse(t.pts).at(-1) / ascisse(P).at(-1)).p))));
     t.pts = P; log(chiave, 'versante volare: scostamento massimo', (sp * 10).toFixed(1), 'mm');
@@ -270,7 +291,7 @@ const CONTRO = {
   nradsup: ['retext', 'g1', 'g2', 'g3', 'apl', 'epb', 'epl', 'ecrl', 'ecrb', 'br', 'radio', 'scafoide', 'trapezio', 'mc1', 'mc2', 'iod', 'add'],
   nulndors: ['retext', 'g5', 'g6', 'ecu', 'edm', 'edc', 'fcu', 'ulna', 'piramidale', 'uncinato', 'mc4', 'mc5', 'adm'],
   nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op'],
-  ndig: ['retfl', 'fds', 'fdp', 'lumb'], nuln: ['fcu', 'pisiforme', 'retfl', 'tettoguy'], nulnsup: ['retfl', 'tettoguy', 'pisiforme', 'adm'],
+  ndig: ['pl', 'retfl', 'fds', 'fdp', 'lumb'], nuln: ['fcu', 'pisiforme', 'retfl', 'tettoguy'], nulnsup: ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm'],
   nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm'],
 };
 function verifica() {
@@ -282,7 +303,7 @@ function verifica() {
     for (const c of (CONTRO[id] || [])) {
       if (!man.meshes.some(m => m.n === c)) continue;
       const { F } = campo([c]); let n = 0, peggio = 0, dove = null;
-      for (const p of P) { const d = sample(F, ...p) - rEff(id, p[1], r); if (d < -0.02) { n++; if (d < peggio) { peggio = d; dove = p; } } }
+      for (const p of P) { const d = peggioreContorno(F, id, p, r).d; if (d < -0.02) { n++; if (d < peggio) { peggio = d; dove = p; } } }
       if (n) log(`  ${id}[${b}] dentro ${c}: ${n} punti (fino a ${(-peggio * 10).toFixed(1)} mm, y = ${dove[1].toFixed(2)})`);
     }
     if (SOTTOCUTE[id]) { G.griglia(lo, hi, 0.03, 0.4); const { F } = campo(['cute']); const fuori = P.filter(p => sample(F, ...p) > -r).length;
