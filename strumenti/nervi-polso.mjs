@@ -189,7 +189,7 @@ const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggi
   'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
   'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
   'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
-  'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4'],
+  'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'mc3', 'capitato', 'fcu'],   // non 'add': il ramo profondo termina nell'adduttore del pollice, che innerva
   // nervi digitali comuni: profondi all'aponeurosi palmare (`pl`), sopra i tendini flessori e i lombricali
   'ndig:0': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
   'ndig:1': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
@@ -213,24 +213,32 @@ function peggioreContorno(F, id, p, r) {
   let d = 1e9, q = p, c = null; for (const o of C) { const x = add(p, o), e = sample(F, ...x); if (e < d) { d = e; q = x; c = o; } } return { d, q, c };
 }
 const SOTTO_PL = ['ndig', 'nulnsup'];   // nervi che stanno sempre profondi all'aponeurosi palmare
+const Y_PL = -9;   // y distale oltre cui l'aponeurosi palmare si divide in digitazioni e non vincola più i nervi digitali (cm)
+const SPOST_MAX = 1.0;   // spostamento massimo di un punto dal decorso di partenza (cm): evita che un vincolo mal posto scagli il nervo lontano
 const GIOCO_V = 0.03;
+const GIOCO_DIG = 0.01;   // i nervi digitali passano in un corridoio stretto tra aponeurosi, lombricali e interossei
 const EXTRA_V = { gfcr: 0.04 };   // spazio per la lamina profonda del retinacolo tra il tunnel del FCR e il mediano (cm)   // distanza minima (cm) oltre il raggio
 function volari(T) {
   for (const [chiave, nomi] of Object.entries(VOLARI)) {
     const [id, b] = chiave.split(':'), t = T[id][+b], r = t.r;
-    const P = ricampiona(t.pts, 0.1), n = P.length;
+    const P = ricampiona(t.pts, 0.1), n = P.length, P0 = P.map(p => p.slice());   // P0: decorso di partenza, da cui ci si allontana al massimo di SPOST_MAX
     const lo = [0, 1, 2].map(k => Math.min(...P.map(p => p[k]))), hi = [0, 1, 2].map(k => Math.max(...P.map(p => p[k])));
-    griglia(lo, hi, 0.03, 0.4);
+    griglia(lo, hi, 0.03, SPOST_MAX + 0.4);   // la griglia deve contenere tutto ciò che il nervo può raggiungere, altrimenti i campi sono costanti fuori e non spingono più
     const noms = nomi.filter(m => man.meshes.some(x => x.n === m)), Fs = noms.map(m => campo([m]).F);
     const gr = (F, p) => { const e = 0.05, g = [0, 1, 2].map(k => { const a = p.slice(), c = p.slice(); a[k] += e; c[k] -= e; return sample(F, ...a) - sample(F, ...c); }); return nrm(g); };
     const [l0, l1] = LIBERI[chiave] || [0, 0], fx = new Set([...(l0 ? [] : [0]), ...(l1 ? [] : [n - 1])]), y0 = P[0][1], y1 = P[n - 1][1];
     // filo teso: smussatura e vincoli alternati (come per i rami dorsali), così la linea scavalca gli ostacoli senza spigoli
-    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => { const { d: d0, q } = peggioreContorno(F, id, P[i], r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0), d = d0 - (ex - GIOCO_V); if (d - GIOCO_V >= 0) return;
+    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => {
+      if (noms[j] === 'pl' && SOTTO_PL.includes(id) && P[i][1] < Y_PL) return;   // oltre le digitazioni dell'aponeurosi (testa dei metacarpali) i nervi digitali ne escono
+      const { d: d0, q } = peggioreContorno(F, id, P[i], r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0), g = SOTTO_PL.includes(id) ? GIOCO_DIG : GIOCO_V, d = d0 - (ex - GIOCO_V); if (d - g >= 0) return;
       // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola
-      const dir = noms[j] === 'pl' && SOTTO_PL.includes(id) ? [0, 0, -1] : gr(F, q); P[i] = add(P[i], mul(dir, -(d - GIOCO_V) * k)); }); } };
-    const piani = () => { P[0][1] = y0; P[n - 1][1] = y1; };
+      const dir = noms[j] === 'pl' && SOTTO_PL.includes(id) ? [0, 0, -1] : gr(F, q);
+      P[i] = add(P[i], mul(dir, Math.min(-(d - g) * k, 0.05))); }); } };
+    const piani = () => { P[0][1] = y0; P[n - 1][1] = y1;
+      if (l1) P[n - 1] = add(P[n - 2], sub(P0[n - 1], P0[n - 2]));   // estremo libero: conserva l'ultimo tratto, così non si forma uno spigolo con l'ancoraggio
+      for (let i = 0; i < n; i++) { const d = sub(P[i], P0[i]), l = len(d); if (l > SPOST_MAX) P[i] = add(P0[i], mul(d, SPOST_MAX / l)); } };
     for (let it = 0; it < 1500; it++) { spingi(0.8); piani(); smussa(P, 2, fx); piani(); }
-    for (let it = 0; it < 40; it++) spingi(1);
+    for (let it = 0; it < 60; it++) { spingi(1); piani(); }
     const sp = Math.max(...P.map((p, i) => len(sub(p, aAscissa(t.pts, ascisse(t.pts), ascisse(P)[i] * ascisse(t.pts).at(-1) / ascisse(P).at(-1)).p))));
     t.pts = P; log(chiave, 'versante volare: scostamento massimo', (sp * 10).toFixed(1), 'mm');
   }
@@ -293,7 +301,7 @@ const CONTRO = {
   nulndors: ['retext', 'g5', 'g6', 'ecu', 'edm', 'edc', 'fcu', 'ulna', 'piramidale', 'uncinato', 'mc4', 'mc5', 'adm'],
   nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op'],
   ndig: ['pl', 'retfl', 'fds', 'fdp', 'lumb'], nuln: ['fcu', 'pisiforme', 'retfl', 'tettoguy'], nulnsup: ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm'],
-  nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm'],
+  nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'capitato'],
 };
 function verifica() {
   const mix = (a, b, t) => a + (b - a) * t;
