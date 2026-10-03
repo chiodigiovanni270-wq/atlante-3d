@@ -21,6 +21,11 @@
    3) Cute. Vicino allo stiloide radiale e sul dorso ulnare la cute BodyParts3D dista dal retinacolo e dalle guaine
       meno del diametro del nervo: lì la cute si solleva con un rilievo dolce sopra il nervo (che infatti è palpabile),
       in modo che il nervo resti almeno SOTTO_CUTE sotto la superficie. Si riparte dalla cute della revisione ORIGINALE.
+   0) Versante volare (prima di tutto): mediano, ramo motorio, ulnare, ramo profondo dell'ulnare, nervi digitali comuni e
+      ramo superficiale dell'ulnare fuori da tendini, muscoli, retinacoli e ossa. Lo spostamento di ogni nervo è una
+      B-spline cubica nel piano di sezione di ogni punto (decorso liscio per costruzione, punti che non scorrono lungo il
+      nervo); il mediano segue una guida anatomica fino al tunnel carpale (GUIDA) e si divide al margine distale del
+      retinacolo (ACCORCIA, RIDISEGNA). Ciclo completo: questo script, `retinacoli-polso.mjs volari`, di nuovo questo.
    Riparte sempre dai tubi e dalla cute della revisione ORIGINALE, quindi si può rilanciare. Va rilanciato se cambiano retinacoli,
    guaine o tendini dorsali; dopo, se serve, si rilanciano `retinacoli-polso.mjs` e `radio-volare-polso.mjs`, che
    leggono i tubi dal sorgente. */
@@ -189,7 +194,7 @@ const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggi
   'nmed:0': ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol', 'radio', 'ulna', 'semilunare', 'capitato', 'scafoide', 'trapezio'],
   'nmedmot:0': ['retfl', 'apb', 'fpb', 'op', 'trapezio', 'mc1'],
   'nuln:0': ['fcu', 'pisiforme', 'retfl', 'tettoguy', 'ulna', 'fds', 'fdp'],
-  'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'mc3', 'capitato', 'fcu'],   // non 'add': il ramo profondo termina nell'adduttore del pollice, che innerva
+  'nulnprof:0': ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'retfl', 'mc5', 'mc4', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'mc3', 'mc2', 'capitato', 'trapezoide', 'fcu'],   // non 'add': il ramo profondo termina nell'adduttore del pollice, che innerva
   // nervi digitali comuni: profondi all'aponeurosi palmare (`pl`), sopra i tendini flessori e i lombricali
   'ndig:0': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
   'ndig:1': ['pl', 'retfl', 'fds', 'fdp', 'lumb', 'mc2', 'mc3', 'mc4', 'add'],
@@ -197,12 +202,36 @@ const VOLARI = { // tubo → strutture da cui deve stare lontano (oltre il raggi
   'nulnsup:0': ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm', 'fdm', 'fds', 'fdp', 'lumb', 'mc4', 'mc5'],
   'nulnsup:1': ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm', 'fdm', 'fds', 'fdp', 'lumb', 'mc4', 'mc5'],
 };
-// estremi liberi di scorrere sul loro piano (y fisso): inizio del tronco (piano di sezione) e fine dei rami digitali;
-// tutti gli altri estremi sono origini o divisioni e restano dove sono
-const LIBERI = { 'nmed:0': [1, 0], 'nuln:0': [1, 0], 'ndig:0': [0, 1], 'ndig:1': [0, 1], 'ndig:2': [0, 1], 'nulnsup:0': [0, 1], 'nulnsup:1': [0, 1] };
+// estremi liberi di scorrere sul loro piano: inizio dei tronchi (piano di sezione), fine dei rami digitali e del ramo
+// profondo dell'ulnare (che termina nell'adduttore del pollice); tutti gli altri estremi sono origini o divisioni e restano dove sono
+const LIBERI = { 'nulnprof:0': [0, 1], 'nmed:0': [1, 0], 'nuln:0': [1, 0], 'ndig:0': [0, 1], 'ndig:1': [0, 1], 'ndig:2': [0, 1], 'nulnsup:0': [0, 1], 'nulnsup:1': [0, 1] };
 // nel tunnel carpale il mediano è appiattito (sezione ovale, larga e bassa a parità di area): rapporto altezza/larghezza
-const TUNNEL = { y: [-2.8, -0.4], rampa: 0.6, rapporto: 0.7 };
-const rtTunnel = y => 1 - (1 - TUNNEL.rapporto) * sstep(TUNNEL.y[0] - TUNNEL.rampa, TUNNEL.y[0], y) * (1 - sstep(TUNNEL.y[1], TUNNEL.y[1] + TUNNEL.rampa, y));
+// sezione già ovale nell'avambraccio distale (tra FDS, FDP e FCR) e appiattimento progressivo nel tunnel, da prossimale
+// (livello del pisiforme) a distale (uncino dell'uncinato), come nella RM normale: [y, rapporto] a tratti, poi di nuovo
+// rotondo oltre il margine distale del retinacolo
+const TUNNEL = [[1.4, 1], [0.6, 0.7], [-1.0, 0.7], [-2.0, 0.5], [-2.8, 0.5], [-3.4, 1]];
+// guida del mediano dall'avambraccio distale al tunnel carpale. Al polso il nervo è ulnare al FCR e radiale al FDS,
+// sotto il palmare lungo; nel tunnel sta nella metà radiale, volare ai tendini del FDS di II e III dito, e distalmente
+// sale subito sotto il retinacolo dei flessori (Mesgarzadeh M et al., Radiology 1989; Standring S, Gray's Anatomy).
+// Il decorso originale è più profondo e radiale (tra FPL e FCR, sotto la guaina del FCR). La guida è il percorso ottimo
+// trovato con la programmazione dinamica su sezioni ogni mm (stati x-z ogni 0,4 mm): costo = compenetrazione della
+// sezione ovale con tendini, guaina del FCR (con lo spazio per la lamina) e tetto del retinacolo, più la levigatezza,
+// con il vincolo di stare ulnare all'asse del FCR. Il nervo vi è portato all'inizio e poi richiamato debolmente;
+// le spinte degli ostacoli rifiniscono. Punti [y, x, z] da prossimale a distale
+const RACCORDO_GUIDA = 0.8;   // lunghezza dei raccordi tra decorso originale e guida (cm)
+// posizione della guida alla quota y e peso (0 fuori, 1 nel tratto guidato)
+function guida(chiave, y) {
+  const A = GUIDA[chiave]; if (!A || y > A[0][0] + RACCORDO_GUIDA || y < A.at(-1)[0] - RACCORDO_GUIDA) return null;
+  const w = sstep(A[0][0] + RACCORDO_GUIDA, A[0][0], y) * sstep(A.at(-1)[0] - RACCORDO_GUIDA, A.at(-1)[0], y);
+  let k = 0; while (k < A.length - 2 && y < A[k + 1][0]) k++;
+  const u = Math.min(1, Math.max(0, (y - A[k][0]) / (A[k + 1][0] - A[k][0])));
+  return { x: A[k][1] + (A[k + 1][1] - A[k][1]) * u, z: A[k][2] + (A[k + 1][2] - A[k][2]) * u, w };
+}
+const GUIDA = { 'nmed:0': [[1.0, -1.34, 0.95], [0.8, -1.38, 0.95], [0.6, -1.36, 0.95], [0.4, -1.27, 0.95], [0.2, -1.26, 0.95], [0.0, -1.27, 0.96],
+  [-0.2, -1.34, 1.01], [-0.4, -1.42, 1.03], [-0.6, -1.46, 1.00], [-0.8, -1.49, 0.99], [-1.0, -1.46, 1.06], [-1.2, -1.38, 1.15], [-1.4, -1.30, 1.27],
+  [-1.8, -1.30, 1.21], [-2.2, -1.42, 1.13], [-2.6, -1.74, 1.06]] };
+const rtTunnel = y => { if (y >= TUNNEL[0][0] || y <= TUNNEL.at(-1)[0]) return 1; let k = 0; while (y < TUNNEL[k + 1][0]) k++;
+  const [ya, a] = TUNNEL[k], [yb, b] = TUNNEL[k + 1]; return a + (b - a) * sstep(ya, yb, y); };
 const rEff = (id, y, r) => id === 'nmed' ? r * Math.sqrt(rtTunnel(y)) : r;   // raggio nella direzione volare-dorsale
 // sezione ovale del mediano (tronco): punti del contorno nel piano x-z, semiassi larghezza r/√rt e altezza r√rt
 const OVALE = [...Array(12).keys()].map(i => i / 12 * 2 * Math.PI);
@@ -214,33 +243,111 @@ function peggioreContorno(F, id, p, r) {
 }
 const SOTTO_PL = ['ndig', 'nulnsup'];   // nervi che stanno sempre profondi all'aponeurosi palmare
 const Y_PL = -9;   // y distale oltre cui l'aponeurosi palmare si divide in digitazioni e non vincola più i nervi digitali (cm)
+const NODI = { 'nmed:0': 1.1, 'nuln:0': 1.4, 'nulnprof:0': 0.45, base: 0.6 };   // passo dei nodi della B-spline dello spostamento (cm): più grande = decorso più disteso
+const TENSIONE = 0.15;   // a ogni giro ogni nodo si avvicina alla media dei vicini: spostamento senza ondulazioni
+// decorsi di partenza da distendere (passate di smussatura, estremi fissi): il ramo profondo dell'ulnare originale
+// attraversa il palmo dritto e poi fa una gobba distale prima di finire contro il II metacarpo; disteso descrive
+// un arco regolare a convessità distale, come l'arcata palmare profonda che accompagna
+const DISTENDI = { 'nulnprof:0': 60 };
+// la lamina profonda del retinacolo attorno alla guaina del FCR è costruita da retinacoli-polso.mjs attorno al
+// mediano: qui conta solo il tetto del retinacolo (si ignora la parte entro `dist` cm dalla guaina, il cui spazio
+// per la lamina è garantito da EXTRA_V), altrimenti la lamina della revisione precedente terrebbe il nervo dov'era
+const SENZA_SETTO = { 'nmed:0': { retfl: ['gfcr', 0.15] } };
+// lunghezza (cm) della rampa con cui lo spostamento si annulla verso un estremo vincolato (base 0,8): per l'ulnare,
+// che a livello del pisiforme si sposta di qualche mm, una rampa corta darebbe una piega prima della divisione
+const RAMPA = { 'nuln:0': 2.0 };
 const SPOST_MAX = 1.0;   // spostamento massimo di un punto dal decorso di partenza (cm): evita che un vincolo mal posto scagli il nervo lontano
 const GIOCO_V = 0.03;
 const GIOCO_DIG = 0.01;   // i nervi digitali passano in un corridoio stretto tra aponeurosi, lombricali e interossei
-const EXTRA_V = { gfcr: 0.04 };   // spazio per la lamina profonda del retinacolo tra il tunnel del FCR e il mediano (cm)   // distanza minima (cm) oltre il raggio
+// priorità degli ostacoli dove lo spazio non basta (spinta proporzionale alla compenetrazione per il peso): nell'avambraccio
+// distale lo spazio tra guaina del FCR e FDP è più stretto del mediano; il compromesso cade sul FDP, su cui il nervo poggia
+const PESO_V = { gfcr: 2 };
+// spazio (cm) per la lamina profonda del retinacolo tra il tunnel del FCR e il mediano; la lamina esiste solo sotto il
+// retinacolo: rampa in y da Y_SETTO[0] a Y_SETTO[1]
+const EXTRA_V = { gfcr: 0.04 }, Y_SETTO = [0.0, -0.6];
 function volari(T) {
   for (const [chiave, nomi] of Object.entries(VOLARI)) {
     const [id, b] = chiave.split(':'), t = T[id][+b], r = t.r;
-    const P = ricampiona(t.pts, 0.1), n = P.length, P0 = P.map(p => p.slice());   // P0: decorso di partenza, da cui ci si allontana al massimo di SPOST_MAX
+    const P = ricampiona(t.pts, 0.1), n = P.length;
+    if (DISTENDI[chiave]) smussa(P, DISTENDI[chiave]);   // decorso di partenza con una gobba disegnata a mano: prima si distende
+    if (GUIDA[chiave]) {   // decorso di partenza portato sulla guida (con raccordi dolci): le spinte da sole resterebbero
+      for (const p of P) { const gd = guida(chiave, p[1]); if (gd) { p[0] += (gd.x - p[0]) * gd.w; p[2] += (gd.z - p[2]) * gd.w; } }   // incastrate nella strettoia tra FCR e FDS
+      smussa(P, 30); }
+    const P0 = P.map(p => p.slice());   // P0: decorso di partenza, da cui ci si allontana al massimo di SPOST_MAX
     const lo = [0, 1, 2].map(k => Math.min(...P.map(p => p[k]))), hi = [0, 1, 2].map(k => Math.max(...P.map(p => p[k])));
     griglia(lo, hi, 0.03, SPOST_MAX + 0.4);   // la griglia deve contenere tutto ciò che il nervo può raggiungere, altrimenti i campi sono costanti fuori e non spingono più
     const noms = nomi.filter(m => man.meshes.some(x => x.n === m)), Fs = noms.map(m => campo([m]).F);
+    for (const [a, [b, dist]] of Object.entries(SENZA_SETTO[chiave] || {})) {   // ostacolo a meno della parte vicina a b
+      const Fa = Fs[noms.indexOf(a)], Fb = Fs[noms.indexOf(b)]; for (let i = 0; i < Fa.length; i++) Fa[i] = Math.max(Fa[i], dist - Fb[i]); }
     const gr = (F, p) => { const e = 0.05, g = [0, 1, 2].map(k => { const a = p.slice(), c = p.slice(); a[k] += e; c[k] -= e; return sample(F, ...a) - sample(F, ...c); }); return nrm(g); };
-    const [l0, l1] = LIBERI[chiave] || [0, 0], fx = new Set([...(l0 ? [] : [0]), ...(l1 ? [] : [n - 1])]), y0 = P[0][1], y1 = P[n - 1][1];
-    // filo teso: smussatura e vincoli alternati (come per i rami dorsali), così la linea scavalca gli ostacoli senza spigoli
-    const spingi = k => { for (let i = 0; i < n; i++) { if (fx.has(i)) continue; Fs.forEach((F, j) => {
-      if (noms[j] === 'pl' && SOTTO_PL.includes(id) && P[i][1] < Y_PL) return;   // oltre le digitazioni dell'aponeurosi (testa dei metacarpali) i nervi digitali ne escono
-      const { d: d0, q } = peggioreContorno(F, id, P[i], r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0), g = SOTTO_PL.includes(id) ? GIOCO_DIG : GIOCO_V, d = d0 - (ex - GIOCO_V); if (d - g >= 0) return;
-      // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola
-      const dir = noms[j] === 'pl' && SOTTO_PL.includes(id) ? [0, 0, -1] : gr(F, q);
-      P[i] = add(P[i], mul(dir, Math.min(-(d - g) * k, 0.05))); }); } };
-    const piani = () => { P[0][1] = y0; P[n - 1][1] = y1;
-      if (l1) P[n - 1] = add(P[n - 2], sub(P0[n - 1], P0[n - 2]));   // estremo libero: conserva l'ultimo tratto, così non si forma uno spigolo con l'ancoraggio
-      for (let i = 0; i < n; i++) { const d = sub(P[i], P0[i]), l = len(d); if (l > SPOST_MAX) P[i] = add(P0[i], mul(d, SPOST_MAX / l)); } };
-    for (let it = 0; it < 1500; it++) { spingi(0.8); piani(); smussa(P, 2, fx); piani(); }
-    for (let it = 0; it < 60; it++) { spingi(1); piani(); }
+    const [l0, l1] = LIBERI[chiave] || [0, 0];
+    // spinta richiesta in ogni punto: fuori da ogni ostacolo, almeno il gioco oltre il raggio (sul contorno ovale per il mediano)
+    // lato di partenza: dove il decorso originale è fuori da un ostacolo, la spinta non lo fa mai attraversare (dentro un
+    // tendine il gradiente cambia verso a metà e porterebbe il nervo fuori dal lato opposto)
+    const lato0 = P.map(p => Fs.map(F => sample(F, ...p) - r > -0.02 ? gr(F, p) : null));
+    const spinte = () => P.map((p, i) => { let f = [0, 0, 0], att = false; Fs.forEach((F, j) => {
+      if (noms[j] === 'pl' && SOTTO_PL.includes(id) && p[1] < Y_PL) return;   // oltre le digitazioni dell'aponeurosi (testa dei metacarpali) i nervi digitali ne escono
+      const { d: d0, q } = peggioreContorno(F, id, p, r), ex = GIOCO_V + (EXTRA_V[noms[j]] || 0) * sstep(Y_SETTO[0], Y_SETTO[1], p[1]), g = SOTTO_PL.includes(id) ? GIOCO_DIG : GIOCO_V, d = d0 - (ex - GIOCO_V); if (d - g >= 0) return;
+      // l'aponeurosi palmare è un telo sottile: il nervo sta sempre sotto (dorsalmente), il gradiente cambierebbe verso attraversandola;
+      const telo = noms[j] === 'pl' && SOTTO_PL.includes(id);
+      // per l'aponeurosi la direzione è quella del gradiente, ribaltata verso il dorso se punta in senso volare: lontano
+      // dal telo resta dorsale, vicino ai setti profondi dell'aponeurosi diventa laterale (non li si percorre verso il dorso)
+      let dir = gr(F, q); if (telo && dir[2] > 0) dir = [dir[0], dir[1], -dir[2]];
+      if (!telo && lato0[i][j] && dot(dir, lato0[i][j]) < 0) dir = lato0[i][j];
+      f = add(f, mul(dir, Math.min((g - d) * 0.6 * (PESO_V[noms[j]] || 1), 0.08))); att = true; });
+      // richiamo debole verso la guida anatomica (le spinte degli ostacoli prevalgono sempre)
+      const gd = guida(chiave, p[1]);
+      if (gd) { const v = [gd.x - p[0], 0, gd.z - p[2]], l = len(v); if (l > 0.005) { f = add(f, mul(v, Math.min(0.02, l) / l * gd.w)); att = true; } }
+      return att ? f : null; });
+    // spostamento liscio per costruzione: B-spline cubica sull'ascissa del decorso di partenza, nodi ogni NODI cm, sempre
+    // nel piano di sezione del decorso di partenza (i punti non scorrono lungo il nervo: niente ammucchiamenti, salti,
+    // spigoli o anelli compenetrati). Agli estremi vincolati lo spostamento si annulla con una rampa dolce; le spinte
+    // muovono i nodi (media pesata delle spinte dei punti che ciascun nodo controlla)
+    const S0 = ascisse(P0), L = S0.at(-1), m = Math.max(2, Math.round(L / (NODI[chiave] || NODI.base))), hn = L / m, J = m + 3;
+    const bs = u => { u = Math.abs(u); return u < 1 ? (4 - 6 * u * u + 3 * u ** 3) / 6 : u < 2 ? (2 - u) ** 3 / 6 : 0; };
+    const W = S0.map(s => Array.from({ length: J }, (_, j) => bs(s / hn - (j - 1))));
+    const E = Math.min(RAMPA[chiave] || 0.8, L / 3), env = S0.map(s => (l0 ? 1 : sstep(0, E, s)) * (l1 ? 1 : sstep(0, E, L - s)));
+    const T0 = P0.map((_, i) => nrm(sub(P0[Math.min(n - 1, i + 1)], P0[Math.max(0, i - 1)])));
+    const C = Array.from({ length: J }, () => [0, 0, 0]);
+    const aggiorna = () => { for (let i = 0; i < n; i++) { let d = [0, 0, 0]; for (let j = 0; j < J; j++) if (W[i][j]) d = add(d, mul(C[j], W[i][j]));
+      d = mul(sub(d, mul(T0[i], dot(d, T0[i]))), env[i]); const l = len(d); if (l > SPOST_MAX) d = mul(d, SPOST_MAX / l); P[i] = add(P0[i], d); } };
+    for (let it = 0; it < 900; it++) {
+      const f = spinte(); let mosso = false;
+      for (let j = 0; j < J; j++) { let s = [0, 0, 0], w = 0, wa = 0;
+        for (let i = 0; i < n; i++) { const c = W[i][j] * env[i]; if (!c) continue; w += c; if (f[i]) { s = add(s, mul(f[i], c)); wa += c; } }
+        if (wa) { C[j] = add(C[j], mul(s, 0.7 / (wa + 0.2 * w))); mosso = true; } }
+      const C1 = C.map(c => c.slice()); for (let j = 1; j < J - 1; j++) C[j] = add(C1[j], mul(sub(add(C1[j - 1], C1[j + 1]), mul(C1[j], 2)), TENSIONE / 2));
+      aggiorna(); if (!mosso) break;
+    }
     const sp = Math.max(...P.map((p, i) => len(sub(p, aAscissa(t.pts, ascisse(t.pts), ascisse(P)[i] * ascisse(t.pts).at(-1) / ascisse(P).at(-1)).p))));
     t.pts = P; log(chiave, 'versante volare: scostamento massimo', (sp * 10).toFixed(1), 'mm');
+  }
+}
+
+/* ============ 0') Punto di divisione del mediano ============ */
+// nel decorso originale tutti i rami terminali del mediano partono dall'estremità radiale del tronco (verso i tenari),
+// e i rami diretti al II-III spazio devono tornare indietro con una piega a V. Il tronco si accorcia di ACCORCIA cm
+// (divisione al margine distale del retinacolo): i rami che proseguono nella direzione del tronco (I spazio, ramo
+// motorio) ne ereditano la coda, gli altri nascono dal nuovo punto di divisione e raggiungono il loro decorso con un raccordo
+const ACCORCIA = { nmed: 0.5 };
+// ramo motorio ricorrente (tenare): dal lato radiale del mediano al margine distale del retinacolo curva subito in senso
+// radiale e prossimale (ricorrente) ed entra nei muscoli tenari tra APB e FPB (Lanz U, J Hand Surg Am 1977; Standring S,
+// Gray's Anatomy). Decorso ridisegnato dal punto di divisione: punti dopo il primo (cm), l'ultimo è quello originale
+const RIDISEGNA = { nmedmot: [[-2.0, -3.33, 1.12], [-2.1, -3.43, 1.36], [-2.2, -3.44, 1.62], [-2.35, -3.34, 1.84], [-2.547, -3.181, 1.979]] };
+function accorcia(T) {
+  for (const [id, cut] of Object.entries(ACCORCIA)) {
+    const tr = T[id][0], P = ricampiona(tr.pts, 0.05), S = ascisse(P), L = S.at(-1), E = P.at(-1);
+    const k = P.findIndex((_, i) => S[i] >= L - cut), coda = P.slice(k), c0 = P[k], td = nrm(sub(E, c0));
+    tr.pts = P.slice(0, k + 1);
+    for (const tubi of Object.values(T)) for (const t of tubi) {
+      if (t === tr || len(sub(t.pts[0], E)) > 0.02) continue;
+      const nome = Object.keys(T).find(k => T[k].includes(t));
+      if (RIDISEGNA[nome]) { t.pts = ricampiona([c0, ...RIDISEGNA[nome]], 0.1); smussa(t.pts, 10); continue; }
+      const C = ricampiona(t.pts, 0.05), SC = ascisse(C), d = nrm(sub(aAscissa(C, SC, Math.min(1, SC.at(-1))).p, E));
+      if (dot(d, td) > 0.85 || SC.at(-1) < 1.5) { t.pts = [...coda.slice(0, -1), ...C]; continue; }
+      const R = ricampiona([c0, ...C.filter((_, i) => SC[i] > 0.8)], 0.1);
+      smussa(R, 25, new Set(R.map((_, i) => i).filter(i => i === 0 || i >= 16))); t.pts = R;
+    }
   }
 }
 
@@ -258,7 +365,17 @@ function divisioni(T) {
     const m = Math.max(0, Rloc - ra.r) * k;
     // tratto affiancato dentro il tronco (dall'ascissa s0 − aff all'origine), poi decorso originale con lo spostamento che si annulla
     const pre = [], n = Math.max(3, Math.round(aff / 0.15));
-    for (let q = 0; q < n; q++) { const s = s0 - aff + aff * q / n, { p } = aAscissa(P, S, s); pre.push(add(p, mul(lat, m * (0.55 + 0.45 * q / n)))); }
+    // il fascicolo resta dentro la sezione del tronco, che può essere ovale (tunnel carpale, appiattimento finale) e
+    // assottigliata verso la fine: spostamento al più fino al bordo dell'ovale nella direzione `lat`, meno il raggio del ramo
+    const f = FINE[da.join(':')] || {}, L = S.at(-1);
+    const dentro = (s, t) => { let rr = tr.r, rt = 1;
+      if (f.fin) rr *= f.fin[0] + (1 - f.fin[0]) * sstep(0, f.fin[1], L - s);
+      if (f.piatto) rt = Math.min(rt, 1 - (1 - f.piatto[0]) * sstep(L - f.piatto[1], L, s));
+      if (da[0] === 'nmed' && da[1] === 0) rt = Math.min(rt, rtTunnel(aAscissa(P, S, s).p[1]));
+      let B = sub([1, 0, 0], mul(t, t[0])); B = nrm(B); const Nn = cross(t, B), lx = dot(lat, B), lz = dot(lat, Nn);
+      const rho = 1 / Math.hypot(lx / (rr / Math.sqrt(rt)), lz / (rr * Math.sqrt(rt)));
+      return Math.max(0, rho - ra.r * 0.6); };
+    for (let q = 0; q < n; q++) { const s = s0 - aff + aff * q / n, { p, t } = aAscissa(P, S, s); pre.push(add(p, mul(lat, Math.min(m * (0.55 + 0.45 * q / n), dentro(s, t))))); }
     const post = C.map((p, i) => add(p, mul(lat, m * (1 - sstep(0, racc, SC[i])))));
     // ramo ricorrente (motorio del mediano): esce dal fianco del tronco poco prima della divisione e va subito
     // all'indietro verso i tenari, senza correre in avanti nel tronco e ripiegare su sé stesso
@@ -267,7 +384,10 @@ function divisioni(T) {
       for (const [ds, f] of [[ricorrente + aff, 0.5], [ricorrente, 1]]) pre.push(add(aAscissa(P, S, s0 - ds).p, mul(lat, m * f)));
       post.splice(0, post.findIndex((_, i) => SC[i] >= 0.4));
     }
-    ra.pts = [...pre, ...post];
+    // raccordo tra il fascicolo nel tronco e il decorso del ramo: smussatura dei soli punti attorno alla giunzione
+    const J0 = ricampiona(pre.concat([post[0]]), 0.1).length - 1, R = ricampiona([...pre, ...post], 0.1);
+    smussa(R, 12, new Set(R.map((_, i) => i).filter(i => i === 0 || Math.abs(i - J0) > 6)));
+    ra.pts = R;
     ra.o.ini = [0.35, Math.min(0.5, aff * 0.45)];
   }
   for (const [chiave, f] of Object.entries(FINE)) {
@@ -299,13 +419,17 @@ function scrivi(T) {
 const CONTRO = {
   nradsup: ['retext', 'g1', 'g2', 'g3', 'apl', 'epb', 'epl', 'ecrl', 'ecrb', 'br', 'radio', 'scafoide', 'trapezio', 'mc1', 'mc2', 'iod', 'add'],
   nulndors: ['retext', 'g5', 'g6', 'ecu', 'edm', 'edc', 'fcu', 'ulna', 'piramidale', 'uncinato', 'mc4', 'mc5', 'adm'],
-  nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op'],
+  nmed: ['retfl', 'fds', 'fdp', 'fpl', 'fcr', 'gfcr', 'pl', 'pq', 'capvol'], npalm: ['retfl', 'pl', 'fcr', 'apb'], nmedmot: ['retfl', 'apb', 'fpb', 'op'],
   ndig: ['pl', 'retfl', 'fds', 'fdp', 'lumb'], nuln: ['fcu', 'pisiforme', 'retfl', 'tettoguy'], nulnsup: ['pl', 'retfl', 'tettoguy', 'pisiforme', 'adm'],
-  nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'capitato'],
+  nulnprof: ['uncinato', 'pisiforme', 'fdm', 'odm', 'adm', 'fds', 'fdp', 'fpl', 'lumb', 'iod', 'iop', 'capitato', 'mc2', 'mc3', 'mc4', 'mc5', 'trapezoide'],
 };
 function verifica() {
   const mix = (a, b, t) => a + (b - a) * t;
   for (const id of NERVI) leggi(G.M.html.split('\n').find(l => l.startsWith(`{id:'${id}',`))).forEach(({ pts, r }, b) => {
+    // curvatura: un raggio di curvatura minore di 2 volte il raggio del tubo fa compenetrare gli anelli (spigolo, tacche)
+    let Rmin = Infinity, yR = 0; for (let i = 1; i < pts.length - 1; i++) { const a = sub(pts[i], pts[i - 1]), c = sub(pts[i + 1], pts[i]);
+      const ang = Math.acos(Math.min(1, dot(a, c) / (len(a) * len(c) || 1))), R = (len(a) + len(c)) / 2 / (ang || 1e-9); if (R < Rmin) { Rmin = R; yR = pts[i][1]; } }
+    if (Rmin < 2 * r) log(`  ${id}[${b}] curva stretta: raggio ${(Rmin * 10).toFixed(1)} mm (y = ${yR.toFixed(2)})`);
     const P = []; for (let s = 0; s < pts.length - 1; s++) for (let q = 0; q < 4; q++) P.push(pts[s].map((v, k) => mix(v, pts[s + 1][k], q / 4)));
     const lo = [0, 1, 2].map(k => Math.min(...P.map(p => p[k]))), hi = [0, 1, 2].map(k => Math.max(...P.map(p => p[k])));
     griglia(lo, hi, 0.03, 0.4);
@@ -325,6 +449,7 @@ if (process.argv.includes('verifica')) verifica();
 else {
   G.setPos('cute', G.posDaRevisione(ORIGINALE, 'cute', FILE_REPO));
   const T = Object.fromEntries(NERVI.map(id => [id, leggi(rigaOriginale(id))]));
+  accorcia(T);
   volari(T);
   sottocute(T);
   cute();
